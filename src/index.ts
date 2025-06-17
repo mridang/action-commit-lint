@@ -158,7 +158,7 @@ export async function run(
   ) => getCommitFetcher(event),
 ): Promise<string | void> {
   try {
-    console.log("marmaduke")
+    console.log('marmaduke');
     const workingDirectory: string = getWorkingDirectory();
     if (process.env.JEST_WORKER_ID === undefined) {
       const absoluteWorkingDirectory = path.resolve(workingDirectory);

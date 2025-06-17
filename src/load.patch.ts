@@ -45,9 +45,12 @@ export default async function loadPlugin(
       let version = 'unknown';
       try {
         const pkgJson = resolveFrom(cwd, `${longName}/package.json`);
-        version = (await import(pathToFileURL(pkgJson).href)).version ?? version;
+        version =
+          (await import(pathToFileURL(pkgJson).href)).version ?? version;
       } catch {}
-      console.log(`Loaded plugin ${pluginName} (${longName}@${version}) from ${entry}`);
+      console.log(
+        `Loaded plugin ${pluginName} (${longName}@${version}) from ${entry}`,
+      );
     }
 
     plugins[key] = plugin;

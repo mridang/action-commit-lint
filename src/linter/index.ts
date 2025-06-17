@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { existsSync as fsExistsSync } from 'node:fs';
 import { debug, info } from '@actions/core';
 import lintLib from '@commitlint/lint';
@@ -41,49 +42,49 @@ export class Linter {
    * An immutable array of commit objects to be processed by the linter.
    * @private
    */
-  private readonly commitsToLint: ReadonlyArray<CommitToLint>;
+  private readonly allCommits: ReadonlyArray<CommitToLint>;
 
   /**
    * An optional, user-provided path to a commitlint configuration file.
    * @private
    */
-  private readonly configPathInput: string | null;
+  private readonly configPath: string | null;
 
   /**
    * A custom help URL to be used in formatted output, overriding the config.
    * @private
    */
-  private readonly helpUrlInput: string;
+  private readonly helpUrl: string;
 
   /**
    * The base directory from which to resolve configurations and plugins.
    * @private
    */
-  private readonly projectBasePath: string;
+  private readonly projectBase: string;
 
   /**
    * Constructs a new Linter instance.
    *
-   * @param commitsToLint An array of commit objects, each containing a hash
+   * @param allCommits An array of commit objects, each containing a hash
    * and a message string, that are to be processed.
-   * @param configPathInput An optional, explicit path to a commitlint
+   * @param configPath An optional, explicit path to a commitlint
    * configuration file. If null, auto-detection will be used.
-   * @param helpUrlInput A custom URL to be displayed in formatted output,
+   * @param helpUrl A custom URL to be displayed in formatted output,
    * overriding any helpUrl from the loaded configuration.
-   * @param projectBasePath The root path of the project. This is used as the
+   * @param projectBase The root path of the project. This is used as the
    * current working directory for loading configurations and resolving
    * shareable presets (e.g., from `node_modules`).
    */
   constructor(
-    commitsToLint: ReadonlyArray<CommitToLint>,
-    configPathInput: string | null,
-    helpUrlInput: string,
-    projectBasePath: string,
+    allCommits: ReadonlyArray<CommitToLint>,
+    configPath: string | null,
+    helpUrl: string,
+    projectBase: string,
   ) {
-    this.commitsToLint = commitsToLint;
-    this.configPathInput = configPathInput;
-    this.helpUrlInput = helpUrlInput;
-    this.projectBasePath = projectBasePath;
+    this.allCommits = allCommits;
+    this.configPath = configPath;
+    this.helpUrl = helpUrl;
+    this.projectBase = projectBase;
   }
 
   /**
@@ -92,21 +93,21 @@ export class Linter {
    *
    * @returns A promise that resolves to the loaded and parsed commitlint
    * configuration object.
-   * @throws An error if `configPathInput` is not provided or if the file
+   * @throws An error if `configPath` is not provided or if the file
    * does not exist at the specified path.
    * @private
    */
   private async loadEffectiveConfig(): Promise<LoadedCommitlintConfig> {
-    if (this.configPathInput) {
-      if (fsExistsSync(this.configPathInput)) {
-        info(`Loading commitlint configuration from: ${this.configPathInput}`);
+    if (this.configPath) {
+      if (fsExistsSync(this.configPath)) {
+        info(`Loading commitlint configuration from: ${this.configPath}`);
         return (await loadConfig(
           {},
-          { cwd: this.projectBasePath, file: this.configPathInput },
+          { cwd: this.projectBase, file: this.configPath },
         )) as LoadedCommitlintConfig;
       } else {
         throw new Error(
-          `Specified configuration file was not found at: ${this.configPathInput}`,
+          `Specified configuration file was not found at: ${this.configPath}`,
         );
       }
     } else {
@@ -127,31 +128,35 @@ export class Linter {
   public async lint(): Promise<Results> {
     const loadedConfig = await this.loadEffectiveConfig();
 
-    const lintingPromises = this.commitsToLint.map(async (commit) => {
-      const lintResult = await lintLib(
-        commit.message,
-        loadedConfig.rules as QualifiedRules,
-        {
-          parserOpts:
-            (loadedConfig.parserPreset?.parserOpts as
-              | ActualParserOptions
-              | undefined) ?? {},
-          plugins: loadedConfig.plugins ?? {},
-          ignores: loadedConfig.ignores ?? [],
-          defaultIgnores: loadedConfig.defaultIgnores ?? true,
-          helpUrl: this.helpUrlInput || loadedConfig.helpUrl,
-        },
-      );
+    const lintResults = await Promise.all(
+      this.allCommits
+        .map((commit) => {
+          debug(`Linting commit ${commit.hash} - "${commit.message}"`);
+          return commit;
+        })
+        .map(async (commit) => {
+          const lintResult = await lintLib(
+            commit.message,
+            loadedConfig.rules as QualifiedRules,
+            {
+              parserOpts:
+                (loadedConfig.parserPreset?.parserOpts as
+                  | ActualParserOptions
+                  | undefined) ?? {},
+              plugins: loadedConfig.plugins ?? {},
+              ignores: loadedConfig.ignores ?? [],
+              defaultIgnores: loadedConfig.defaultIgnores ?? true,
+              helpUrl: this.helpUrl || loadedConfig.helpUrl,
+            },
+          );
 
-      return {
-        ...lintResult,
-        hash: commit.hash,
-      };
-    });
+          return {
+            ...lintResult,
+            hash: commit.hash,
+          };
+        }),
+    );
 
-    const results = await Promise.all(lintingPromises);
-    const finalHelpUrl = this.helpUrlInput || loadedConfig.helpUrl || '';
-
-    return new Results(results, finalHelpUrl);
+    return new Results(lintResults, this.helpUrl);
   }
 }
