@@ -21,7 +21,6 @@ import { tmpdir } from 'node:os';
  * like `GITHUB_REF` or `GITHUB_EVENT_NAME`.
  * @param eventPayload
  * @param commitFetcherFactory
- * @param workingDirectory
  * @returns A promise that resolves with the action's result or void.
  */
 async function runAction(
@@ -29,7 +28,6 @@ async function runAction(
   extraEnv: Record<string, string | undefined> = {},
   eventPayload: unknown,
   commitFetcherFactory: (event: string) => ICommitFetcher | null,
-  workingDirectory: string,
 ): Promise<string | void> {
   const summaryDir = mkdtempSync(join(tmpdir(), 'test-'));
   const summaryPath = join(summaryDir, 'summary.md');
@@ -51,7 +49,7 @@ async function runAction(
       GITHUB_STEP_SUMMARY: summaryPath,
       GITHUB_EVENT_PATH: eventPath,
     },
-    () => run(undefined, commitFetcherFactory, workingDirectory),
+    () => run(undefined, commitFetcherFactory),
   );
   return await wrapped();
 }
@@ -133,6 +131,7 @@ describe('Commitlint Action Integration Tests', () => {
         runAction(
           {
             'github-token': 'fake-token',
+            'working-directory': tmp,
             ...params.inputs,
           },
           {
@@ -153,7 +152,6 @@ describe('Commitlint Action Integration Tests', () => {
               },
             };
           },
-          tmp,
         );
 
       if (params.expectToThrow) {

@@ -25,5 +25,5 @@ export default {
       },
     ],
   ],
-  repositoryUrl: 'git+https://github.com/mridang/action-semantic-release.git',
+  repositoryUrl: 'git+https://github.com/mridang/action-commit-lint.git',
 };

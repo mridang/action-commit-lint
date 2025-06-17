@@ -3,6 +3,7 @@ import getCommitFetcher from '../../src/fetchers/index.js';
 import { MergeGroupCommitFetcher } from '../../src/fetchers/merge-group.js';
 import { PullRequestCommitFetcher } from '../../src/fetchers/pull-request.js';
 import { PushEventCommitFetcher } from '../../src/fetchers/push-event.js';
+import { GenericCommitFetcher } from '../../src/fetchers/default-git.js';
 
 describe('getCommitFetcher', () => {
   const testCases = [
@@ -32,18 +33,18 @@ describe('getCommitFetcher', () => {
     },
     {
       eventName: 'workflow_dispatch',
-      expectedClass: null,
+      expectedClass: GenericCommitFetcher,
       description:
         'should return null for an unsupported event like workflow_dispatch',
     },
     {
       eventName: undefined,
-      expectedClass: null,
+      expectedClass: GenericCommitFetcher,
       description: 'should return null for an undefined event name',
     },
     {
       eventName: '',
-      expectedClass: null,
+      expectedClass: GenericCommitFetcher,
       description: 'should return null for an empty string event name',
     },
   ];

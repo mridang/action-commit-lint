@@ -1,9 +1,7 @@
 name: Commit Linter
 
 description: |
-  Lints commit messages based on commitlint configurations.
-  It can be configured to check commit depth, and handle warnings
-  and errors in a flexible manner.
+  GitHub Action that auto-installs commitlint configs/plugins, lints recent commits and posts a colored summary report.
 
 author: mridang
 branding:

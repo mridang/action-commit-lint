@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import path from 'node:path';
 import resolveFrom from 'resolve-from';
@@ -10,6 +11,7 @@ import {
   WhitespacePluginError,
   MissingPluginError,
 } from '@commitlint/load/lib/utils/plugin-errors.js';
+import { info } from '@actions/core';
 
 const cwd = process.cwd();
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
@@ -53,7 +55,7 @@ export default async function loadPlugin(
       } catch {
         //
       }
-      console.log(
+      info(
         `Loaded plugin ${pluginName} (${longName}@${version}) from ${entry}`,
       );
     }

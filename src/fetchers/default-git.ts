@@ -6,7 +6,7 @@ import { ICommitFetcher } from '../types.js';
 /**
  * Represents a commit that needs to be linted.
  */
-export interface CommitToLint {
+interface CommitToLint {
   message: string;
   hash: string;
 }
