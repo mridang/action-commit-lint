@@ -1,16 +1,13 @@
 import alias from '@rollup/plugin-alias';
 import json from '@rollup/plugin-json';
-import resolve from '@rollup/plugin-node-resolve';
+import nodeResolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import esbuild from 'rollup-plugin-esbuild';
-import { dirname, resolve as r } from 'node:path';
+import { dirname, resolve as r, resolve as pathResolve } from 'node:path';
 import { readFileSync } from 'node:fs';
-import nodeResolve   from '@rollup/plugin-node-resolve';
-import { resolve as pathResolve } from 'node:path';
 
 const badJson = r('node_modules/@pnpm/npm-conf/lib/tsconfig.make-out.json');
 const patched = pathResolve('src/load.patch.ts');
-
 
 const spy = {
   name: 'commitlint-spy',
@@ -18,8 +15,8 @@ const spy = {
     if (importer && /node_modules\/@commitlint\/load/.test(importer)) {
       console.log('🕵️  commitlint →', importee, '← from', importer);
     }
-    return null;                    // don’t change anything
-  }
+    return null; // don’t change anything
+  },
 };
 
 // ✨ New plugin to handle .hbs files
@@ -101,27 +98,32 @@ export default {
     sourcemap: false,
     inlineDynamicImports: true,
   },
-  onwarn(warning, warn) {
-    if (warning.code === 'CIRCULAR_DEPENDENCY') {
-      return;
-    }
-    warn(warning);
+  onwarn(w, warn) {
+    if (w.code !== 'CIRCULAR_DEPENDENCY') warn(w);
   },
+
   plugins: [
     spy,
+
+    /* 1️⃣  alias first */
     alias({
       entries: [
         {
-          // EXACT specifier we saw in the spy output
           find: './utils/load-plugin.js',
-
-          // path to the patch file (ES or TS)
-          replacement: patched
-        }
+          replacement: patched,
+        },
       ],
-      // log whenever a rule matches (one-liner proof)
-      log: (msg) => console.log('🔄  alias hit →', msg)
+      log: (msg) => console.log('🔄  alias hit →', msg),
     }),
+
+    /* 2️⃣  transpile TS (includes load.patch.ts) to ESM JS */
+    esbuild({
+      target: 'node20',
+      tsconfig: './tsconfig.json',
+      format: 'esm', // ← keep `import …` statements
+    }),
+
+    /* 3️⃣  custom virtual-module rule for empty JSON */
     {
       name: 'empty-json',
       resolveId(id) {
@@ -132,22 +134,23 @@ export default {
       },
     },
 
+    /* 4️⃣  your transform helpers */
     inlineHbsPlugin,
     inlinePackageJsonPlugin,
 
-    resolve({ exportConditions: ['node', 'default'], preferBuiltins: true }),
+    /* 5️⃣  normal resolver / CJS / JSON chain */
+    nodeResolve({
+      preferBuiltins: true,
+      exportConditions: ['node', 'default'],
+    }),
     commonjs({
-      include: /node_modules/,
+      include: [
+        /node_modules/, // existing rule
+      ],
       requireReturnsDefault: 'auto',
     }),
-    json({
-      preferConst: true,
-      compact: true,
-    }),
-    esbuild({
-      target: 'node20',
-      tsconfig: './tsconfig.json',
-    }),
+    json({ preferConst: true, compact: true }),
   ],
-  external: [],
+
+  external: [], // or list runtime externals here
 };
