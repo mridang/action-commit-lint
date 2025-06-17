@@ -26,9 +26,6 @@ export class GenericCommitFetcher implements ICommitFetcher<string> {
    * The range of commits to fetch can be specified with the `commitRange`
    * parameter.
    *
-   * @param commitRange - A git commit range understandable by `git log`,
-   * e.g., 'main...HEAD' or 'SHA1...SHA2'. If empty or undefined, `git log`'s
-   * default behavior is used (listing all commits reachable from HEAD).
    * @returns A promise that resolves to an array of {@link CommitToLint}
    * objects.
    * @throws If the `git log` command fails (e.g., if not in a git repository).

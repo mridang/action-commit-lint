@@ -1,4 +1,4 @@
-import { summary as summarieser } from '@actions/core';
+import { summary as summarizer } from '@actions/core';
 // @ts-expect-error since these are not exported
 import type { Summary, SummaryTableRow } from '@actions/core/lib/summary';
 import { Formatter } from './index.js';
@@ -8,12 +8,13 @@ import { Results } from './result.js';
  * The default formatter for presenting linting results in a readable GitHub Actions Summary.
  */
 export default class DefaultFormatter implements Formatter {
-  public format(results: Results): void {
-    const summary = summarieser;
+  public async format(results: Results): Promise<void> {
+    const summary = summarizer;
     summary.addHeading('Commit Lint Report', 2);
     this.formatSummary(results, summary);
     this.formatTable(results, summary);
     this.formatFooter(results, summary);
+    await summary.write();
   }
 
   private formatSummary(results: Results, summary: Summary): void {
