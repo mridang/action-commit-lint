@@ -212,6 +212,7 @@ export async function run(
             ? eventCommits.slice(0, commitDepth)
             : eventCommits;
 
+        console.log(await import("@mridang/commitlint-plugin-conditionals"));
         if (commitsToLint.length > 0) {
           startGroup('Running commit-lint');
           const failOnWarns = getFailOnWarnings();
