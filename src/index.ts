@@ -17,8 +17,6 @@ import { Context } from '@actions/github/lib/context.js';
 import getCommitFetcher from './fetchers/index.js';
 import DefaultFormatter from './linter/formatter.js';
 import path from 'node:path';
-import { createRequire } from 'node:module';
-import { pathToFileURL }  from 'node:url';
 
 /**
  * Retrieves the 'commit-depth' input.
@@ -160,36 +158,7 @@ export async function run(
   ) => getCommitFetcher(event),
 ): Promise<string | void> {
   try {
-
-    /* -------------------------------------------------------------------------
-     * 1. Bring back CommonJS `require()` so we can load a CJS helper from ESM.
-     * ---------------------------------------------------------------------- */
-    const require = createRequire(import.meta.url);
-
-    /* -------------------------------------------------------------------------
-     * 2. Load `resolve-from` (CommonJS library) and type it for safety.
-     * ---------------------------------------------------------------------- */
-    const resolveFrom = require('resolve-from') as (
-      fromDirectory: string,
-      moduleId: string
-    ) => string;
-
-    /* -------------------------------------------------------------------------
-     * 3. Resolve the real entry file *as if* Node were starting in process.cwd().
-     * ---------------------------------------------------------------------- */
-    const entryFile = resolveFrom(process.cwd(),
-      '@mridang/commitlint-plugin-conditionals');
-
-    /* -------------------------------------------------------------------------
-     * 4. Convert the path → file-URL and import it.
-     *    Works whether the package is CJS or native ESM.
-     * ---------------------------------------------------------------------- */
-    const plugin = await import(pathToFileURL(entryFile).href);
-
-    /* -------------------------------------------------------------------------
-     * 5. Use the loaded module.
-     * ---------------------------------------------------------------------- */
-    console.log(plugin);
+    console.log("marmaduke")
     const workingDirectory: string = getWorkingDirectory();
     if (process.env.JEST_WORKER_ID === undefined) {
       const absoluteWorkingDirectory = path.resolve(workingDirectory);
