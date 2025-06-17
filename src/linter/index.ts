@@ -125,7 +125,6 @@ export class Linter {
    * detailed outcome of the linting for all processed commits.
    */
   public async lint(): Promise<Results> {
-    console.log(await import('@mridang/commitlint-plugin-conditionals'));
     const loadedConfig = await this.loadEffectiveConfig();
 
     const lintingPromises = this.commitsToLint.map(async (commit) => {

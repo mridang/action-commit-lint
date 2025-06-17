@@ -5,8 +5,22 @@ import commonjs from '@rollup/plugin-commonjs';
 import esbuild from 'rollup-plugin-esbuild';
 import { dirname, resolve as r } from 'node:path';
 import { readFileSync } from 'node:fs';
+import nodeResolve   from '@rollup/plugin-node-resolve';
+import { resolve as pathResolve } from 'node:path';
 
 const badJson = r('node_modules/@pnpm/npm-conf/lib/tsconfig.make-out.json');
+const patched = pathResolve('src/load.patch.ts');
+
+
+const spy = {
+  name: 'commitlint-spy',
+  resolveId(importee, importer) {
+    if (importer && /node_modules\/@commitlint\/load/.test(importer)) {
+      console.log('🕵️  commitlint →', importee, '← from', importer);
+    }
+    return null;                    // don’t change anything
+  }
+};
 
 // ✨ New plugin to handle .hbs files
 const inlineHbsPlugin = {
@@ -94,7 +108,20 @@ export default {
     warn(warning);
   },
   plugins: [
-    alias({ entries: [{ find: badJson, replacement: '\0empty-json' }] }),
+    spy,
+    alias({
+      entries: [
+        {
+          // EXACT specifier we saw in the spy output
+          find: './utils/load-plugin.js',
+
+          // path to the patch file (ES or TS)
+          replacement: patched
+        }
+      ],
+      // log whenever a rule matches (one-liner proof)
+      log: (msg) => console.log('🔄  alias hit →', msg)
+    }),
     {
       name: 'empty-json',
       resolveId(id) {

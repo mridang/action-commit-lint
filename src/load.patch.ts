@@ -1,0 +1,57 @@
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import path from 'node:path';
+import resolveFrom from 'resolve-from';
+import {
+  normalizePackageName,
+  getShorthandName,
+} from '@commitlint/load/lib/utils/plugin-naming.js';
+
+import {
+  WhitespacePluginError,
+  MissingPluginError,
+} from '@commitlint/load/lib/utils/plugin-errors.js';
+
+const cwd = process.cwd();
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
+
+export default async function loadPlugin(
+  plugins: Record<string, unknown>,
+  pluginName: string,
+  debug = false,
+) {
+  const longName = normalizePackageName(pluginName);
+  const key = longName === pluginName ? getShorthandName(longName) : pluginName;
+
+  if (/\s/u.test(pluginName)) {
+    throw new WhitespacePluginError(pluginName, { pluginName: longName });
+  }
+
+  if (!plugins[key]) {
+    let entry: string;
+    try {
+      entry = resolveFrom(cwd, longName);
+    } catch (err) {
+      throw new MissingPluginError(
+        pluginName,
+        err instanceof Error ? err.message : String(err),
+        { pluginName: longName, commitlintPath: rootDir },
+      );
+    }
+
+    const mod = await import(pathToFileURL(entry).href);
+    const plugin = 'default' in mod ? mod.default : mod;
+
+    if (debug) {
+      let version = 'unknown';
+      try {
+        const pkgJson = resolveFrom(cwd, `${longName}/package.json`);
+        version = (await import(pathToFileURL(pkgJson).href)).version ?? version;
+      } catch {}
+      console.log(`Loaded plugin ${pluginName} (${longName}@${version}) from ${entry}`);
+    }
+
+    plugins[key] = plugin;
+  }
+
+  return plugins;
+}
