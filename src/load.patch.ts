@@ -14,6 +14,7 @@ import {
 const cwd = process.cwd();
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
+// noinspection JSUnusedGlobalSymbols
 export default async function loadPlugin(
   plugins: Record<string, unknown>,
   pluginName: string,
@@ -38,6 +39,7 @@ export default async function loadPlugin(
       );
     }
 
+    // eslint-disable-next-line no-unsanitized/method
     const mod = await import(pathToFileURL(entry).href);
     const plugin = 'default' in mod ? mod.default : mod;
 
@@ -46,8 +48,11 @@ export default async function loadPlugin(
       try {
         const pkgJson = resolveFrom(cwd, `${longName}/package.json`);
         version =
+          // eslint-disable-next-line no-unsanitized/method
           (await import(pathToFileURL(pkgJson).href)).version ?? version;
-      } catch {}
+      } catch {
+        //
+      }
       console.log(
         `Loaded plugin ${pluginName} (${longName}@${version}) from ${entry}`,
       );

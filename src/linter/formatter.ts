@@ -5,7 +5,8 @@ import { Formatter } from './index.js';
 import { Results } from './result.js';
 
 /**
- * The default formatter for presenting linting results in a readable GitHub Actions Summary.
+ * The default formatter for presenting linting results in a readable
+ * GitHub Actions Summary.
  */
 export default class DefaultFormatter implements Formatter {
   public async format(results: Results): Promise<void> {
@@ -23,6 +24,7 @@ export default class DefaultFormatter implements Formatter {
         `The following ${results.checkedCount} commits were analyzed as part of this push.`,
       )
       .addEOL()
+      .addBreak()
       .addEOL();
 
     const errorCommitsCount = results.items.filter(
@@ -56,9 +58,9 @@ export default class DefaultFormatter implements Formatter {
     }
 
     const header: SummaryTableRow = [
+      { data: 'Status', header: true },
       { data: 'SHA', header: true },
       { data: 'Message', header: true },
-      { data: 'Status', header: true },
       { data: 'Notes', header: true },
     ];
 
@@ -66,16 +68,16 @@ export default class DefaultFormatter implements Formatter {
       const isError = item.errors.length > 0;
       const isWarning = !isError && item.warnings.length > 0;
 
-      const status = isError ? '🔴' : isWarning ? '🟡' : '🟢';
+      const status = isError ? '  🔴  ' : isWarning ? '  🟡  ' : '  🟢  ';
       const note = isError
         ? item.errors[0].message
         : isWarning
           ? item.warnings[0].message
           : '';
-      const sha = `\`${item.hash.substring(0, 7)}\``;
-      const message = `\`${item.input.split('\n')[0].trim()}\``;
+      const sha = `<code>${item.hash}</code>`;
+      const message = `<code>${item.input.split('\n')[0].trim()}</code>`;
 
-      return [sha, message, status, note];
+      return [status, sha, message, note];
     });
 
     summary.addTable([header, ...rows]);
@@ -89,7 +91,9 @@ export default class DefaultFormatter implements Formatter {
     summary
       .addRaw('For help fixing your commit messages, see the ')
       .addLink('Conventional Commits specification', helpUrl)
-      .addRaw('.')
+      .addRaw(
+        '. The Conventional Commits specification is a lightweight convention on top of commit messages. It provides an easy set of rules for creating an explicit commit history; which makes it easier to write automated tools on top of. This convention dovetails with SemVer, by describing the features, fixes, and breaking changes made in commit messages.',
+      )
       .addEOL()
       .addEOL();
     summary.addQuote(
