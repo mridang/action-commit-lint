@@ -158,6 +158,7 @@ export async function run(
   ) => getCommitFetcher(event),
 ): Promise<string | void> {
   try {
+    console.log(import("@mridang/commitlint-plugin-conditionals"));
     const workingDirectory: string = getWorkingDirectory();
 
     if (process.env.JEST_WORKER_ID === undefined) {
