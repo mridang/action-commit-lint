@@ -15,7 +15,7 @@ export class PullRequestCommitFetcher
   implements ICommitFetcher<PullRequestEventPayloadSubset>
 {
   /**
-   * Fetches all commits for a given pull request.
+   * Fetches all the commits for a given pull request.
    *
    * @param token - The GitHub token for API authentication.
    * @param owner - The owner of the repository where the pull request exists.

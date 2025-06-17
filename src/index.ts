@@ -155,7 +155,7 @@ export async function run(
   ghCtx = new Context(),
   commitFetcherFactory: (event: string) => ICommitFetcher | null = (
     event: string,
-  ) => getCommitFetcher(event)
+  ) => getCommitFetcher(event),
 ): Promise<string | void> {
   try {
     const workingDirectory: string = getWorkingDirectory();

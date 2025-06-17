@@ -17,7 +17,7 @@ export class MergeGroupCommitFetcher
   /**
    * Fetches the head commit from a `merge_group` event payload subset.
    *
-   * @param token - The GitHub token for API authentication.
+   * @param _token - The GitHub token for API authentication.
    * @param _owner - The owner of the repository.
    * @param _repo - The name of the repository.
    * @param eventPayloadSubset - A subset of the GitHub `MergeGroupEvent`
