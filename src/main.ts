@@ -4,5 +4,7 @@
  */
 import { run } from './index.js';
 
+//process.env['INPUT_GITHUB-TOKEN'] = 'dffff';
+//process.env['INPUT_WORKING-DIRECTORY'] = '/Users/mridang/Junk/scratch.git';
 /* istanbul ignore next */
 void run();

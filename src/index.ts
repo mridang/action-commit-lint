@@ -112,6 +112,21 @@ function getHelpURL(): string {
 }
 
 /**
+ * Retrieves the working directory from the action's 'working-directory' input.
+ *
+ * @returns The specified working directory or the current process's
+ * working directory if the input is empty.
+ */
+function getWorkingDirectory(): string {
+  const dir = getInput('working-directory').trim();
+  if (dir) {
+    return dir;
+  } else {
+    return process.cwd();
+  }
+}
+
+/**
  * Sets the action's failure status with a given message.
  * In a JEST test environment, it throws an error instead of calling
  * `actionFailed`.
@@ -135,16 +150,16 @@ function setFailed(message: string | Error): void {
  * @param ghCtx The GitHub context, defaults to a new Context().
  * @param commitFetcherFactory An optional factory function that returns a
  * commit fetcher. Used for testing. Defaults to the real implementation.
- * @param workingDirectory
  */
 export async function run(
   ghCtx = new Context(),
   commitFetcherFactory: (event: string) => ICommitFetcher | null = (
     event: string,
-  ) => getCommitFetcher(event),
-  workingDirectory: string = process.cwd(),
+  ) => getCommitFetcher(event)
 ): Promise<string | void> {
   try {
+    const workingDirectory: string = getWorkingDirectory();
+
     if (process.env.JEST_WORKER_ID === undefined) {
       const absoluteWorkingDirectory = path.resolve(workingDirectory);
       const projectNodeModules = path.join(
