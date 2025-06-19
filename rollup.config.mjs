@@ -1,10 +1,16 @@
+import resolve from '@rollup/plugin-node-resolve';
 import alias from '@rollup/plugin-alias';
-import json from '@rollup/plugin-json';
-import nodeResolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
-import esbuild from 'rollup-plugin-esbuild';
 import { dirname, resolve as r, resolve as pathResolve } from 'node:path';
 import { readFileSync } from 'node:fs';
+import * as nodules from 'node:module';
+import json from '@rollup/plugin-json';
+import typescript from '@rollup/plugin-typescript';
+
+const NODE_BUILTINS = nodules.builtinModules.reduce(
+  (acc, name) => acc.concat([name, `node:${name}`]),
+  [],
+);
 
 const patched = pathResolve('src/load.patch.ts');
 
@@ -44,7 +50,7 @@ const inlinePackageJsonPlugin = {
     }
 
     const requirePattern =
-      /require\((['"`])(.+?(?:package\.json|commitlint\.schema\.json))\1\)/g;
+      /require\((['"`])([-.\/\w]+?(?:package\.json|commitlint\.schema\.json))\1\)/g;
 
     const newCode = code.replace(
       requirePattern,
@@ -68,20 +74,40 @@ const inlinePackageJsonPlugin = {
   },
 };
 
-// noinspection JSUnusedGlobalSymbols
+// noinspection JSUnusedGlobalSymbols,SpellCheckingInspection
 export default {
   input: 'src/main.ts',
   output: {
     file: 'dist/main.cjs',
     format: 'cjs',
-    sourcemap: false,
+    sourcemap: true,
     inlineDynamicImports: true,
+    interop: (id) => {
+      // For Node.js built-in modules (e.g., 'buffer', 'fs/promises'):
+      // Return 'default' to ensure they are treated as pure CommonJS modules,
+      // without extra '.default' wrappers, matching Node.js's native behavior.
+      if (NODE_BUILTINS.includes(id)) {
+        return 'default'; // CHANGED from `false` to `'default'`
+      }
+      // For all other modules (e.g., 'jwt-decode'), return 'esModule' to ensure
+      // they get the `__esModule: true` flag, allowing `import Foo from 'foo'` to work.
+      return 'esModule';
+    },
   },
-  onwarn(w, warn) {
-    if (w.code !== 'CIRCULAR_DEPENDENCY') warn(w);
+  onwarn(warning, warn) {
+    switch (warning.code) {
+      case 'CIRCULAR_DEPENDENCY':
+      case 'THIS_IS_UNDEFINED':
+        return;
+      default:
+        warn(warning);
+    }
   },
-
   plugins: [
+    json({
+      preferConst: true,
+      compact: true,
+    }),
     alias({
       entries: [
         {
@@ -89,38 +115,25 @@ export default {
           replacement: patched,
         },
       ],
-      log: (msg) => console.log('🔄  alias hit →', msg),
     }),
-
-    esbuild({
-      target: 'node20',
-      tsconfig: './tsconfig.json',
-      format: 'esm',
-    }),
-
-    {
-      name: 'empty-json',
-      resolveId(id) {
-        return id === '\0empty-json' ? id : null;
-      },
-      load(id) {
-        if (id === '\0empty-json') return 'export default {};';
-      },
-    },
-
     inlineHbsPlugin,
     inlinePackageJsonPlugin,
-
-    nodeResolve({
-      preferBuiltins: true,
+    resolve({
       exportConditions: ['node', 'default'],
+      preferBuiltins: true,
     }),
     commonjs({
-      include: [/node_modules/],
-      requireReturnsDefault: 'auto',
+      include: /node_modules/,
+      requireReturnsDefault: () => {
+        return 'auto';
+      },
+      ignore: NODE_BUILTINS,
     }),
-    json({ preferConst: true, compact: true }),
+    typescript({
+      tsconfig: './tsconfig.json',
+      module: 'NodeNext',
+      moduleResolution: 'NodeNext',
+    }),
   ],
-
-  external: [],
+  external: NODE_BUILTINS,
 };
