@@ -74,7 +74,6 @@ describe('Commitlint Action Integration Tests', () => {
       configFileName: '.commitlintrc.json',
       configFileContent: {
         extends: ['@commitlint/config-conventional'],
-        plugins: ['@mridang/commitlint-plugin-conditionals'],
         rules: { 'type-enum': [2, 'always', ['fix']] },
       },
       createPkgJson: false,
