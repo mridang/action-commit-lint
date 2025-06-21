@@ -19,10 +19,6 @@ export default class DefaultFormatter implements Formatter {
   }
 
   private formatSummary(results: Results, summary: Summary): void {
-    summary.addRaw(
-      `The following ${results.checkedCount} commits were analyzed as part of this push.`,
-    );
-
     const errorCommitsCount = results.items.filter(
       (item) => item.errors.length > 0,
     ).length;
@@ -33,19 +29,18 @@ export default class DefaultFormatter implements Formatter {
       results.checkedCount - errorCommitsCount - warningOnlyCommitsCount;
 
     const summaryLines = [
+      `The following ${results.checkedCount} commits were analyzed as part of this push.`,
       cleanCommitsCount > 0 &&
         `${cleanCommitsCount} commits passed commitlint checks and follow the conventional commit format.`,
       warningOnlyCommitsCount > 0 &&
         `${warningOnlyCommitsCount} commit${warningOnlyCommitsCount > 1 ? 's have' : ' has'} warnings that should be reviewed.`,
       errorCommitsCount > 0 &&
-        `${errorCommitsCount} commit${errorCommitsCount > 1 ? 's' : ''} failed and must be corrected before merging.`,
+        `${errorCommitsCount} commit${errorCommitsCount > 1 ? 's' : ''} failed and must be corrected.`,
     ]
       .filter((line): line is string => typeof line === 'string')
       .join(' ');
 
-    if (summaryLines) {
-      summary.addRaw(summaryLines).addEOL().addBreak();
-    }
+    summary.addRaw(summaryLines).addEOL().addBreak().addBreak();
   }
 
   private formatTable(results: Results, summary: Summary): void {
