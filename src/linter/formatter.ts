@@ -19,13 +19,9 @@ export default class DefaultFormatter implements Formatter {
   }
 
   private formatSummary(results: Results, summary: Summary): void {
-    summary
-      .addRaw(
-        `The following ${results.checkedCount} commits were analyzed as part of this push.`,
-      )
-      .addEOL()
-      .addBreak()
-      .addEOL();
+    summary.addRaw(
+      `The following ${results.checkedCount} commits were analyzed as part of this push.`,
+    );
 
     const errorCommitsCount = results.items.filter(
       (item) => item.errors.length > 0,
@@ -38,17 +34,17 @@ export default class DefaultFormatter implements Formatter {
 
     const summaryLines = [
       cleanCommitsCount > 0 &&
-        `🟢 ${cleanCommitsCount} commits passed commitlint checks and follow the conventional commit format.`,
+        `${cleanCommitsCount} commits passed commitlint checks and follow the conventional commit format.`,
       warningOnlyCommitsCount > 0 &&
-        `🟡 ${warningOnlyCommitsCount} commit${warningOnlyCommitsCount > 1 ? 's have' : ' has'} warnings that should be reviewed.`,
+        `${warningOnlyCommitsCount} commit${warningOnlyCommitsCount > 1 ? 's have' : ' has'} warnings that should be reviewed.`,
       errorCommitsCount > 0 &&
-        `🔴 ${errorCommitsCount} commit${errorCommitsCount > 1 ? 's' : ''} failed and must be corrected before merging.`,
+        `${errorCommitsCount} commit${errorCommitsCount > 1 ? 's' : ''} failed and must be corrected before merging.`,
     ]
       .filter((line): line is string => typeof line === 'string')
-      .join('\n');
+      .join(' ');
 
     if (summaryLines) {
-      summary.addRaw(summaryLines).addEOL();
+      summary.addRaw(summaryLines).addEOL().addBreak();
     }
   }
 
@@ -68,7 +64,12 @@ export default class DefaultFormatter implements Formatter {
       const isError = item.errors.length > 0;
       const isWarning = !isError && item.warnings.length > 0;
 
-      const status = isError ? '  🔴  ' : isWarning ? '  🟡  ' : '  🟢  ';
+      // noinspection HtmlRequiredAltAttribute
+      const status = isError
+        ? '<img src="https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res/cross.svg" width="18">'
+        : isWarning
+          ? '<img src="https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res/warn.svg" width="18">'
+          : '<img src="https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res/check.svg" width="18">';
       const note = isError
         ? item.errors[0].message
         : isWarning
