@@ -6,6 +6,7 @@ description: |
 author: mridang
 branding:
   color: blue
+  icon: box
 
 inputs:
   github-token:
