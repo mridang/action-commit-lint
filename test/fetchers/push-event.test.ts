@@ -168,7 +168,7 @@ describe('PushEventCommitFetcher', () => {
           ),
         ],
       }),
-    ).rejects.toThrowError(/Failed to compare commits via API/);
+    ).rejects.toThrow(/Failed to compare commits via API/);
     expect(nock.isDone()).toBe(true);
   });
 
