@@ -284055,15 +284055,19 @@ class DefaultFormatter {
         const errorCommitsCount = results.items.filter((item) => item.errors.length > 0).length;
         const warningOnlyCommitsCount = results.items.filter((item) => item.errors.length === 0 && item.warnings.length > 0).length;
         const cleanCommitsCount = results.checkedCount - errorCommitsCount - warningOnlyCommitsCount;
-        const itemNoun = results.checkedCount === 1 ? 'message was' : 'messages were';
+        const headlineNoun = results.checkedCount === 1 ? 'message was' : 'messages were';
+        const cleanNoun = cleanCommitsCount === 1 ? 'message' : 'messages';
+        const cleanVerb = cleanCommitsCount === 1 ? 'follows' : 'follow';
+        const warnNoun = warningOnlyCommitsCount === 1 ? 'message has' : 'messages have';
+        const errorNoun = errorCommitsCount === 1 ? 'message' : 'messages';
         const summaryLines = [
-            `The following ${results.checkedCount} ${itemNoun} analyzed.`,
+            `The following ${results.checkedCount} ${headlineNoun} analyzed.`,
             cleanCommitsCount > 0 &&
-                `${cleanCommitsCount} passed commitlint checks and follow the conventional commit format.`,
+                `${cleanCommitsCount} ${cleanNoun} passed commitlint checks and ${cleanVerb} the conventional commit format.`,
             warningOnlyCommitsCount > 0 &&
-                `${warningOnlyCommitsCount} ${warningOnlyCommitsCount > 1 ? 'have' : 'has'} warnings that should be reviewed.`,
+                `${warningOnlyCommitsCount} ${warnNoun} warnings that should be reviewed.`,
             errorCommitsCount > 0 &&
-                `${errorCommitsCount} failed and must be corrected.`,
+                `${errorCommitsCount} ${errorNoun} failed and must be corrected.`,
         ]
             .filter((line) => typeof line === 'string')
             .join(' ');
@@ -284487,11 +284491,11 @@ async function run(ghCtx = new contextExports.Context(), commitFetcherFactory = 
                             setFailed(`Found ${result1.warningCount} commit message${result1.warningCount === 1 ? '' : 's'} with warnings`);
                         }
                         else {
-                            coreExports.warning(`Commit messages have warning, but 'fail-on-warnings' is false.`);
+                            coreExports.warning(`Commit messages have warnings, but 'fail-on-warnings' is false.`);
                         }
                     }
                     else {
-                        coreExports.info(`All ${result1.checkedCount} commit messages are okay.`);
+                        coreExports.info(`All ${result1.checkedCount} commit message${result1.checkedCount === 1 ? ' is' : 's are'} okay.`);
                     }
                     coreExports.endGroup();
                 }

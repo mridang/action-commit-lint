@@ -28,16 +28,21 @@ export default class DefaultFormatter implements Formatter {
     const cleanCommitsCount =
       results.checkedCount - errorCommitsCount - warningOnlyCommitsCount;
 
-    const itemNoun =
+    const headlineNoun =
       results.checkedCount === 1 ? 'message was' : 'messages were';
+    const cleanNoun = cleanCommitsCount === 1 ? 'message' : 'messages';
+    const cleanVerb = cleanCommitsCount === 1 ? 'follows' : 'follow';
+    const warnNoun =
+      warningOnlyCommitsCount === 1 ? 'message has' : 'messages have';
+    const errorNoun = errorCommitsCount === 1 ? 'message' : 'messages';
     const summaryLines = [
-      `The following ${results.checkedCount} ${itemNoun} analyzed.`,
+      `The following ${results.checkedCount} ${headlineNoun} analyzed.`,
       cleanCommitsCount > 0 &&
-        `${cleanCommitsCount} passed commitlint checks and follow the conventional commit format.`,
+        `${cleanCommitsCount} ${cleanNoun} passed commitlint checks and ${cleanVerb} the conventional commit format.`,
       warningOnlyCommitsCount > 0 &&
-        `${warningOnlyCommitsCount} ${warningOnlyCommitsCount > 1 ? 'have' : 'has'} warnings that should be reviewed.`,
+        `${warningOnlyCommitsCount} ${warnNoun} warnings that should be reviewed.`,
       errorCommitsCount > 0 &&
-        `${errorCommitsCount} failed and must be corrected.`,
+        `${errorCommitsCount} ${errorNoun} failed and must be corrected.`,
     ]
       .filter((line): line is string => typeof line === 'string')
       .join(' ');

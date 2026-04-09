@@ -294,11 +294,13 @@ export async function run(
               );
             } else {
               warning(
-                `Commit messages have warning, but 'fail-on-warnings' is false.`,
+                `Commit messages have warnings, but 'fail-on-warnings' is false.`,
               );
             }
           } else {
-            info(`All ${result1.checkedCount} commit messages are okay.`);
+            info(
+              `All ${result1.checkedCount} commit message${result1.checkedCount === 1 ? ' is' : 's are'} okay.`,
+            );
           }
           endGroup();
         } else {
