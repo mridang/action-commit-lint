@@ -51,9 +51,8 @@ jobs:
           fail-on-warnings: 'false' # Optional: Set to 'true' to fail on warnings
           fail-on-errors: 'true' # Optional: Set to 'false' to pass with errors as warnings
           help-url: 'https://your-project.com/commit-guidelines' # Optional: Your URL for commit guidelines
-          config-file: '.commitlintrc.js' # Optional: Path to your config file
           working-directory: '.' # Optional: Default is '.'
-          lint-strategy: 'commits' # Optional: 'commits' (default) | 'pr-title' | 'both'
+          lint-strategy: 'commits' # Optional: 'commits' (default) | 'pr-title' | 'both'. NOTE: 'pr-title' and 'both' require 'edited' in the pull_request trigger types — see "Squash-merge workflows" below.
 ```
 
 This workflow is configured to trigger commit linting on `pull_request` events and pushes to branches like `main` (or `develop`). It automatically validates all relevant commit messages against your defined standards, providing immediate feedback. This ensures your project's commit history remains clean and consistent from the moment changes are introduced.

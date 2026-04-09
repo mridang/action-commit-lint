@@ -1,7 +1,7 @@
 name: Commit Linter
 
 description: |
-  GitHub Action that auto-installs commitlint configs/plugins, lints recent commits and posts a colored summary report.
+  GitHub Action that auto-installs commitlint configs/plugins, lints commits or the pull request title (configurable for squash-merge workflows) and posts a colored summary report.
 
 author: mridang
 branding:
@@ -48,6 +48,14 @@ inputs:
     description: >
       A URL to display in linting error messages, pointing users to your
       commit message guidelines.
+    required: false
+
+  working-directory:
+    description: >
+      The directory the action treats as the project root for resolving
+      the commitlint configuration and any installed plugins. Defaults
+      to the current process working directory (the repository root in
+      a typical workflow).
     required: false
 
   lint-strategy:
