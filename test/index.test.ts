@@ -108,6 +108,142 @@ describe('Commitlint Action Integration Tests', () => {
       commits: [{ sha: 'impErr2', message: 'fix:' }],
       expectToThrow: false,
     },
+    {
+      description:
+        'lint-strategy=pr-title on pull_request with valid title, should pass and not call fetcher',
+      configFileName: '.commitlintrc.json',
+      configFileContent: {
+        extends: ['@commitlint/config-conventional'],
+        rules: { 'type-enum': [2, 'always', ['feat']] },
+      },
+      createPkgJson: false,
+      inputs: { 'fail-on-errors': 'true', 'lint-strategy': 'pr-title' },
+      event: {
+        name: 'pull_request',
+        payload: {
+          action: 'opened',
+          number: 42,
+          pull_request: { number: 42, title: 'feat: a valid pr title' },
+        },
+      },
+      commits: [],
+      expectFetcherCalled: false,
+      expectToThrow: false,
+    },
+    {
+      description:
+        'lint-strategy=pr-title on pull_request with invalid title, should fail',
+      configFileName: '.commitlintrc.json',
+      configFileContent: {
+        extends: ['@commitlint/config-conventional'],
+        rules: { 'type-enum': [2, 'always', ['fix']] },
+      },
+      createPkgJson: false,
+      inputs: { 'fail-on-errors': 'true', 'lint-strategy': 'pr-title' },
+      event: {
+        name: 'pull_request',
+        payload: {
+          action: 'opened',
+          number: 7,
+          pull_request: { number: 7, title: 'feat: wrong type' },
+        },
+      },
+      commits: [],
+      expectFetcherCalled: false,
+      expectToThrow: true,
+      expectedErrorMessage: 'Found 1 commit messages with errors',
+    },
+    {
+      description:
+        'lint-strategy=pr-title on push event should skip gracefully without throwing',
+      configFileName: '.commitlintrc.json',
+      configFileContent: {
+        extends: ['@commitlint/config-conventional'],
+        rules: { 'type-enum': [2, 'always', ['feat']] },
+      },
+      createPkgJson: false,
+      inputs: { 'fail-on-errors': 'true', 'lint-strategy': 'pr-title' },
+      event: { name: 'push', payload: {} },
+      commits: [{ sha: 'ignored', message: 'feat: ignored' }],
+      expectFetcherCalled: false,
+      expectToThrow: false,
+    },
+    {
+      description:
+        'lint-strategy=pr-title on merge_group event should skip gracefully without throwing',
+      configFileName: '.commitlintrc.json',
+      configFileContent: {
+        extends: ['@commitlint/config-conventional'],
+        rules: { 'type-enum': [2, 'always', ['feat']] },
+      },
+      createPkgJson: false,
+      inputs: { 'fail-on-errors': 'true', 'lint-strategy': 'pr-title' },
+      event: { name: 'merge_group', payload: {} },
+      commits: [{ sha: 'ignored', message: 'feat: ignored' }],
+      expectFetcherCalled: false,
+      expectToThrow: false,
+    },
+    {
+      description:
+        'lint-strategy=both on pull_request with valid title and valid commits, should pass',
+      configFileName: '.commitlintrc.json',
+      configFileContent: {
+        extends: ['@commitlint/config-conventional'],
+        rules: { 'type-enum': [2, 'always', ['feat']] },
+      },
+      createPkgJson: false,
+      inputs: { 'fail-on-errors': 'true', 'lint-strategy': 'both' },
+      event: {
+        name: 'pull_request',
+        payload: {
+          action: 'opened',
+          number: 11,
+          pull_request: { number: 11, title: 'feat: a valid title' },
+        },
+      },
+      commits: [{ sha: 'cmt1', message: 'feat: a valid commit' }],
+      expectFetcherCalled: true,
+      expectToThrow: false,
+    },
+    {
+      description:
+        'lint-strategy=both on pull_request with invalid title but valid commits, should fail on title',
+      configFileName: '.commitlintrc.json',
+      configFileContent: {
+        extends: ['@commitlint/config-conventional'],
+        rules: { 'type-enum': [2, 'always', ['feat']] },
+      },
+      createPkgJson: false,
+      inputs: { 'fail-on-errors': 'true', 'lint-strategy': 'both' },
+      event: {
+        name: 'pull_request',
+        payload: {
+          action: 'opened',
+          number: 12,
+          pull_request: { number: 12, title: 'bad: wrong type' },
+        },
+      },
+      commits: [{ sha: 'cmt2', message: 'feat: a valid commit' }],
+      expectFetcherCalled: true,
+      expectToThrow: true,
+      expectedErrorMessage: 'Found 1 commit messages with errors',
+    },
+    {
+      description:
+        'lint-strategy=garbage should throw an input validation error',
+      configFileName: '.commitlintrc.json',
+      configFileContent: {
+        extends: ['@commitlint/config-conventional'],
+        rules: { 'type-enum': [2, 'always', ['feat']] },
+      },
+      createPkgJson: false,
+      inputs: { 'fail-on-errors': 'true', 'lint-strategy': 'nonsense' },
+      event: { name: 'push', payload: {} },
+      commits: [{ sha: 'valid1', message: 'feat: a valid commit' }],
+      expectFetcherCalled: false,
+      expectToThrow: true,
+      expectedErrorMessage: 'Invalid value for "lint-strategy"',
+    },
   ];
 
   test.each(testMatrix)('$description', (params) => {
@@ -142,6 +278,14 @@ describe('Commitlint Action Integration Tests', () => {
           (): ICommitFetcher | null => {
             return {
               fetchCommits: async (): Promise<CommitToLint[]> => {
+                if (
+                  'expectFetcherCalled' in params &&
+                  params.expectFetcherCalled === false
+                ) {
+                  throw new Error(
+                    'fetchCommits was called but the test asserted it must not be',
+                  );
+                }
                 const transformedCommits = params.commits.map((commit) => ({
                   hash: commit.sha,
                   message: commit.message,

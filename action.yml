@@ -50,6 +50,18 @@ inputs:
       commit message guidelines.
     required: false
 
+  lint-strategy:
+    description: >
+      Which items to lint. 'commits' (default) lints each commit in the
+      event. 'pr-title' lints only the pull request title, which is the
+      message that lands in git history for squash-merge workflows.
+      'both' lints the PR title and every commit. When set to 'pr-title'
+      on events without a pull request context (push, merge_group), no
+      items will be linted and the action will fail with 'No commits
+      found to lint'.
+    required: false
+    default: 'commits'
+
 runs:
   using: node24
   main: dist/main.cjs

@@ -4,6 +4,7 @@ import {
   endGroup,
   getInput,
   info,
+  notice,
   setFailed as actionFailed,
   startGroup,
   warning,
@@ -17,6 +18,11 @@ import { Context } from '@actions/github/lib/context.js';
 import getCommitFetcher from './fetchers/index.js';
 import DefaultFormatter from './linter/formatter.js';
 import path from 'node:path';
+import type { CommitToLint } from './types.js';
+import {
+  getLintStrategy as makeLintStrategy,
+  type LintStrategyName,
+} from './strategies/index.js';
 
 /**
  * Retrieves the 'commit-depth' input.
@@ -112,6 +118,30 @@ function getHelpURL(): string {
 }
 
 /**
+ * Retrieves the 'lint-strategy' input and narrows it to a
+ * {@link LintStrategyName}. Empty input defaults to `'commits'` to
+ * preserve backwards compatibility.
+ *
+ * @returns The parsed strategy name.
+ * @throws {Error} If the input is set to a value other than
+ * `'commits'`, `'pr-title'`, `'both'`, or the empty string.
+ */
+function getLintStrategy(): LintStrategyName {
+  const raw = getInput('lint-strategy').trim().toLowerCase();
+  if (raw === '' || raw === 'commits') {
+    return 'commits';
+  } else if (raw === 'pr-title') {
+    return 'pr-title';
+  } else if (raw === 'both') {
+    return 'both';
+  } else {
+    throw new Error(
+      `Invalid value for "lint-strategy". Expected 'commits', 'pr-title', or 'both', but received '${raw}'.`,
+    );
+  }
+}
+
+/**
  * Retrieves the working directory from the action's 'working-directory' input.
  *
  * @returns The specified working directory or the current process's
@@ -199,16 +229,38 @@ export async function run(
       info(`Fetching commits for event: ${ghCtx.eventName}`);
       const commitFetcher = commitFetcherFactory(ghCtx.eventName);
       if (commitFetcher) {
-        const eventCommits = await commitFetcher.fetchCommits(
-          githubToken,
-          ghCtx.repo.owner,
-          ghCtx.repo.repo,
-          ghCtx.payload,
+        const lintStrategyName = getLintStrategy();
+
+        if (
+          lintStrategyName === 'pr-title' &&
+          ghCtx.payload.pull_request === undefined
+        ) {
+          notice(
+            `lint-strategy=pr-title: event '${ghCtx.eventName}' has no pull request in its payload, skipping. This is expected on push and merge_group events triggered by squash-merges.`,
+          );
+          return;
+        }
+
+        const strategy = makeLintStrategy(lintStrategyName);
+
+        const fetchAndLimit = async (): Promise<
+          ReadonlyArray<CommitToLint>
+        > => {
+          const all = await commitFetcher.fetchCommits(
+            githubToken,
+            ghCtx.repo.owner,
+            ghCtx.repo.repo,
+            ghCtx.payload,
+          );
+          return commitDepth && all.length > commitDepth
+            ? all.slice(0, commitDepth)
+            : all;
+        };
+
+        const commitsToLint = await strategy.resolve(
+          { eventName: ghCtx.eventName, payload: ghCtx.payload },
+          fetchAndLimit,
         );
-        const commitsToLint =
-          commitDepth && eventCommits.length > commitDepth
-            ? eventCommits.slice(0, commitDepth)
-            : eventCommits;
 
         if (commitsToLint.length > 0) {
           startGroup('Running commit-lint');

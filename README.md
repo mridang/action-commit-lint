@@ -53,9 +53,42 @@ jobs:
           help-url: 'https://your-project.com/commit-guidelines' # Optional: Your URL for commit guidelines
           config-file: '.commitlintrc.js' # Optional: Path to your config file
           working-directory: '.' # Optional: Default is '.'
+          lint-strategy: 'commits' # Optional: 'commits' (default) | 'pr-title' | 'both'
 ```
 
 This workflow is configured to trigger commit linting on `pull_request` events and pushes to branches like `main` (or `develop`). It automatically validates all relevant commit messages against your defined standards, providing immediate feedback. This ensures your project's commit history remains clean and consistent from the moment changes are introduced.
+
+### Squash-merge workflows
+
+If your repository **only** uses squash-merge, the individual commits on a feature branch are thrown away at merge time; only a single squash commit lands in `main`, and its message defaults to the **PR title**. Linting the ephemeral per-commit messages in that case is busywork — the thing that actually ends up in git history is the PR title, and that's what you want to enforce conventional-commit rules on.
+
+Set `lint-strategy: pr-title` to lint the PR title instead of the commits. The action reads the title directly from the webhook payload, so no extra GitHub API calls are made.
+
+```yaml
+name: Commit Lint
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: mridang/action-commit-lint@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          lint-strategy: pr-title
+```
+
+If you want defence-in-depth — enforce the rules on both individual commits _and_ the PR title that will become the squash commit — use `lint-strategy: both` instead.
+
+> **Safe with mixed triggers:** On `push` or `merge_group` events the payload has no PR title to read, and `lint-strategy: pr-title` will **skip linting and emit a workflow notice** rather than failing. This means you can safely combine `pull_request` and `push: branches: [main]` triggers in the same workflow without the post-merge `push` run failing.
 
 ## Inputs
 
@@ -65,6 +98,10 @@ This workflow is configured to trigger commit linting on `pull_request` events a
 - **`fail-on-warnings`** (optional, default: `'false'`): If `'true'`, the action will fail if any linting **warnings** are found. By default, warnings won't cause the action to fail.
 - **`fail-on-errors`** (optional, default: `'true'`): If `'false'`, the action will pass with a warning message even if linting **errors** are found. By default, errors will cause the action to fail.
 - **`help-url`** (optional): A URL that'll show up in linting error messages, guiding users to your project's specific commit message guidelines.
+- **`lint-strategy`** (optional, default: `'commits'`): Which items to lint.
+  - `'commits'` — lint each commit in the event. This is the default and preserves existing behaviour.
+  - `'pr-title'` — lint only the pull request title. Useful for **squash-merge** workflows where individual commit messages are discarded at merge time and the PR title becomes the squash commit message. On `push` and `merge_group` events the payload has no PR title to read, so the action emits a workflow notice and skips linting (rather than failing) — this makes the strategy safe to combine with `push` triggers on your default branch.
+  - `'both'` — lint the PR title _and_ every commit. On events without a PR title in the payload (e.g. `push`), this degrades gracefully and behaves exactly like `'commits'`. The PR title is not counted towards `commit-depth`; depth limits commits only.
 
 ## Outputs
 
