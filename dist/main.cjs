@@ -257497,15 +257497,33 @@ class Results {
      */
     helpUrl;
     /**
-     * The total number of errors across all linted commits. This value is
-     * pre-calculated in the constructor for O(1) access.
+     * The total number of errors across all linted commits. A single commit
+     * with three errors contributes three to this count. Pre-calculated in
+     * the constructor for O(1) access.
      */
     errorCount;
     /**
-     * The total number of warnings across all linted commits. This value is
-     * pre-calculated in the constructor for O(1) access.
+     * The total number of warnings across all linted commits. A single
+     * commit with three warnings contributes three to this count.
+     * Pre-calculated in the constructor for O(1) access.
      */
     warningCount;
+    /**
+     * The number of distinct commits that contain at least one error. A
+     * commit with three errors contributes one to this count. Use this when
+     * reporting "N commit messages failed", as opposed to {@link errorCount}
+     * which counts individual errors. Pre-calculated in the constructor for
+     * O(1) access.
+     */
+    errorCommitsCount;
+    /**
+     * The number of distinct commits that contain at least one warning. A
+     * commit with three warnings contributes one to this count. Use this
+     * when reporting "N commit messages have warnings", as opposed to
+     * {@link warningCount} which counts individual warnings. Pre-calculated
+     * in the constructor for O(1) access.
+     */
+    warningCommitsCount;
     /**
      * Constructs a new Results instance. It eagerly processes the provided
      * linting results to generate and store aggregate counts for errors and
@@ -257517,12 +257535,21 @@ class Results {
     constructor(items, helpUrl) {
         this.items = items;
         this.helpUrl = helpUrl;
-        const { errorCount, warningCount } = items.reduce((counts, item) => ({
+        const { errorCount, warningCount, errorCommitsCount, warningCommitsCount } = items.reduce((counts, item) => ({
             errorCount: counts.errorCount + item.errors.length,
             warningCount: counts.warningCount + item.warnings.length,
-        }), { errorCount: 0, warningCount: 0 });
+            errorCommitsCount: counts.errorCommitsCount + (item.errors.length > 0 ? 1 : 0),
+            warningCommitsCount: counts.warningCommitsCount + (item.warnings.length > 0 ? 1 : 0),
+        }), {
+            errorCount: 0,
+            warningCount: 0,
+            errorCommitsCount: 0,
+            warningCommitsCount: 0,
+        });
         this.errorCount = errorCount;
         this.warningCount = warningCount;
+        this.errorCommitsCount = errorCommitsCount;
+        this.warningCommitsCount = warningCommitsCount;
     }
     /**
      * Gets the total number of commits that were analyzed by the linter.
@@ -284052,7 +284079,7 @@ class DefaultFormatter {
         await summary.write();
     }
     formatSummary(results, summary) {
-        const errorCommitsCount = results.items.filter((item) => item.errors.length > 0).length;
+        const errorCommitsCount = results.errorCommitsCount;
         const warningOnlyCommitsCount = results.items.filter((item) => item.errors.length === 0 && item.warnings.length > 0).length;
         const cleanCommitsCount = results.checkedCount - errorCommitsCount - warningOnlyCommitsCount;
         const headlineNoun = results.checkedCount === 1 ? 'message was' : 'messages were';
@@ -284480,7 +284507,7 @@ async function run(ghCtx = new contextExports.Context(), commitFetcherFactory = 
                     await result1.format(new DefaultFormatter());
                     if (result1.hasErrors) {
                         if (failOnErrs) {
-                            setFailed(`Found ${result1.errorCount} commit message${result1.errorCount === 1 ? '' : 's'} with errors`);
+                            setFailed(`Found ${result1.errorCommitsCount} commit message${result1.errorCommitsCount === 1 ? '' : 's'} with errors`);
                         }
                         else {
                             coreExports.warning(`Commit messages have errors, but 'fail-on-errors' is false.`);
@@ -284488,7 +284515,7 @@ async function run(ghCtx = new contextExports.Context(), commitFetcherFactory = 
                     }
                     else if (result1.hasOnlyWarnings) {
                         if (failOnWarns) {
-                            setFailed(`Found ${result1.warningCount} commit message${result1.warningCount === 1 ? '' : 's'} with warnings`);
+                            setFailed(`Found ${result1.warningCommitsCount} commit message${result1.warningCommitsCount === 1 ? '' : 's'} with warnings`);
                         }
                         else {
                             coreExports.warning(`Commit messages have warnings, but 'fail-on-warnings' is false.`);

@@ -19,9 +19,7 @@ export default class DefaultFormatter implements Formatter {
   }
 
   private formatSummary(results: Results, summary: Summary): void {
-    const errorCommitsCount = results.items.filter(
-      (item) => item.errors.length > 0,
-    ).length;
+    const errorCommitsCount = results.errorCommitsCount;
     const warningOnlyCommitsCount = results.items.filter(
       (item) => item.errors.length === 0 && item.warnings.length > 0,
     ).length;

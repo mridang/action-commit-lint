@@ -54,6 +54,54 @@ describe('Results', () => {
     warnings: [],
   };
 
+  const multiErrorCommit = {
+    hash: 'r3s4t5u',
+    input: 'something broken',
+    valid: false,
+    errors: [
+      {
+        level: 2,
+        valid: false,
+        name: 'type-empty',
+        message: 'Type may not be empty',
+      },
+      {
+        level: 2,
+        valid: false,
+        name: 'subject-case',
+        message: 'Subject must be in lowercase',
+      },
+      {
+        level: 2,
+        valid: false,
+        name: 'header-max-length',
+        message: 'Header is too long',
+      },
+    ],
+    warnings: [],
+  };
+
+  const multiWarningCommit = {
+    hash: 'v6w7x8y',
+    input: 'docs: too many warnings here',
+    valid: true,
+    errors: [],
+    warnings: [
+      {
+        level: 1,
+        valid: true,
+        name: 'subject-max-length',
+        message: 'Subject too long',
+      },
+      {
+        level: 1,
+        valid: true,
+        name: 'body-leading-blank',
+        message: 'Body should start with blank line',
+      },
+    ],
+  };
+
   test('should correctly calculate counts and states for mixed results', () => {
     const items = [cleanCommit, warningCommit, errorCommit1, errorCommit2];
     const results = new Results(items, 'https://example.com/rules');
@@ -63,6 +111,8 @@ describe('Results', () => {
     expect(results.checkedCount).toBe(4);
     expect(results.errorCount).toBe(2);
     expect(results.warningCount).toBe(1);
+    expect(results.errorCommitsCount).toBe(2);
+    expect(results.warningCommitsCount).toBe(1);
     expect(results.hasErrors).toBe(true);
     expect(results.hasOnlyWarnings).toBe(false);
   });
@@ -74,6 +124,8 @@ describe('Results', () => {
     expect(results.checkedCount).toBe(2);
     expect(results.errorCount).toBe(0);
     expect(results.warningCount).toBe(1);
+    expect(results.errorCommitsCount).toBe(0);
+    expect(results.warningCommitsCount).toBe(1);
     expect(results.hasErrors).toBe(false);
     expect(results.hasOnlyWarnings).toBe(true);
   });
@@ -85,6 +137,8 @@ describe('Results', () => {
     expect(results.checkedCount).toBe(2);
     expect(results.errorCount).toBe(1);
     expect(results.warningCount).toBe(0);
+    expect(results.errorCommitsCount).toBe(1);
+    expect(results.warningCommitsCount).toBe(0);
     expect(results.hasErrors).toBe(true);
     expect(results.hasOnlyWarnings).toBe(false);
   });
@@ -96,6 +150,8 @@ describe('Results', () => {
     expect(results.checkedCount).toBe(2);
     expect(results.errorCount).toBe(0);
     expect(results.warningCount).toBe(0);
+    expect(results.errorCommitsCount).toBe(0);
+    expect(results.warningCommitsCount).toBe(0);
     expect(results.hasErrors).toBe(false);
     expect(results.hasOnlyWarnings).toBe(false);
   });
@@ -107,7 +163,25 @@ describe('Results', () => {
     expect(results.checkedCount).toBe(0);
     expect(results.errorCount).toBe(0);
     expect(results.warningCount).toBe(0);
+    expect(results.errorCommitsCount).toBe(0);
+    expect(results.warningCommitsCount).toBe(0);
     expect(results.hasErrors).toBe(false);
     expect(results.hasOnlyWarnings).toBe(false);
+  });
+
+  test('errorCommitsCount counts commits, not errors, when one commit has many errors', () => {
+    const items = [cleanCommit, multiErrorCommit];
+    const results = new Results(items, 'https://example.com/rules');
+
+    expect(results.errorCount).toBe(3);
+    expect(results.errorCommitsCount).toBe(1);
+  });
+
+  test('warningCommitsCount counts commits, not warnings, when one commit has many warnings', () => {
+    const items = [cleanCommit, multiWarningCommit];
+    const results = new Results(items, 'https://example.com/rules');
+
+    expect(results.warningCount).toBe(2);
+    expect(results.warningCommitsCount).toBe(1);
   });
 });

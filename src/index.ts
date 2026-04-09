@@ -280,7 +280,7 @@ export async function run(
           if (result1.hasErrors) {
             if (failOnErrs) {
               setFailed(
-                `Found ${result1.errorCount} commit message${result1.errorCount === 1 ? '' : 's'} with errors`,
+                `Found ${result1.errorCommitsCount} commit message${result1.errorCommitsCount === 1 ? '' : 's'} with errors`,
               );
             } else {
               warning(
@@ -290,7 +290,7 @@ export async function run(
           } else if (result1.hasOnlyWarnings) {
             if (failOnWarns) {
               setFailed(
-                `Found ${result1.warningCount} commit message${result1.warningCount === 1 ? '' : 's'} with warnings`,
+                `Found ${result1.warningCommitsCount} commit message${result1.warningCommitsCount === 1 ? '' : 's'} with warnings`,
               );
             } else {
               warning(

@@ -17,16 +17,36 @@ export class Results {
   public readonly helpUrl: string;
 
   /**
-   * The total number of errors across all linted commits. This value is
-   * pre-calculated in the constructor for O(1) access.
+   * The total number of errors across all linted commits. A single commit
+   * with three errors contributes three to this count. Pre-calculated in
+   * the constructor for O(1) access.
    */
   public readonly errorCount: number;
 
   /**
-   * The total number of warnings across all linted commits. This value is
-   * pre-calculated in the constructor for O(1) access.
+   * The total number of warnings across all linted commits. A single
+   * commit with three warnings contributes three to this count.
+   * Pre-calculated in the constructor for O(1) access.
    */
   public readonly warningCount: number;
+
+  /**
+   * The number of distinct commits that contain at least one error. A
+   * commit with three errors contributes one to this count. Use this when
+   * reporting "N commit messages failed", as opposed to {@link errorCount}
+   * which counts individual errors. Pre-calculated in the constructor for
+   * O(1) access.
+   */
+  public readonly errorCommitsCount: number;
+
+  /**
+   * The number of distinct commits that contain at least one warning. A
+   * commit with three warnings contributes one to this count. Use this
+   * when reporting "N commit messages have warnings", as opposed to
+   * {@link warningCount} which counts individual warnings. Pre-calculated
+   * in the constructor for O(1) access.
+   */
+  public readonly warningCommitsCount: number;
 
   /**
    * Constructs a new Results instance. It eagerly processes the provided
@@ -40,16 +60,28 @@ export class Results {
     this.items = items;
     this.helpUrl = helpUrl;
 
-    const { errorCount, warningCount } = items.reduce(
-      (counts, item) => ({
-        errorCount: counts.errorCount + item.errors.length,
-        warningCount: counts.warningCount + item.warnings.length,
-      }),
-      { errorCount: 0, warningCount: 0 },
-    );
+    const { errorCount, warningCount, errorCommitsCount, warningCommitsCount } =
+      items.reduce(
+        (counts, item) => ({
+          errorCount: counts.errorCount + item.errors.length,
+          warningCount: counts.warningCount + item.warnings.length,
+          errorCommitsCount:
+            counts.errorCommitsCount + (item.errors.length > 0 ? 1 : 0),
+          warningCommitsCount:
+            counts.warningCommitsCount + (item.warnings.length > 0 ? 1 : 0),
+        }),
+        {
+          errorCount: 0,
+          warningCount: 0,
+          errorCommitsCount: 0,
+          warningCommitsCount: 0,
+        },
+      );
 
     this.errorCount = errorCount;
     this.warningCount = warningCount;
+    this.errorCommitsCount = errorCommitsCount;
+    this.warningCommitsCount = warningCommitsCount;
   }
 
   /**
