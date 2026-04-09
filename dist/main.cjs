@@ -284164,7 +284164,7 @@ class PrTitleStrategy {
      */
     async resolve(ctx) {
         const pr = ctx.payload.pull_request;
-        if (pr === undefined) {
+        if (pr === undefined || pr === null) {
             return Object.freeze([]);
         }
         const title = pr.title;
@@ -284444,8 +284444,9 @@ async function run(ghCtx = new contextExports.Context(), commitFetcherFactory = 
             if (commitFetcher) {
                 const lintStrategyName = getLintStrategy();
                 if (lintStrategyName === 'pr-title' &&
-                    ghCtx.payload.pull_request === undefined) {
-                    coreExports.notice(`lint-strategy=pr-title: event '${ghCtx.eventName}' has no pull request in its payload, skipping. This is expected on push and merge_group events triggered by squash-merges.`);
+                    (ghCtx.payload.pull_request === undefined ||
+                        ghCtx.payload.pull_request === null)) {
+                    coreExports.notice(`lint-strategy=pr-title: event '${ghCtx.eventName}' has no pull request in its payload, skipping. This is expected on events without a pull request context, such as a 'push' event fired after a squash-merge lands on the default branch.`);
                     return;
                 }
                 const strategy = getLintStrategy$1(lintStrategyName);

@@ -34,7 +34,7 @@ export class PrTitleStrategy implements LintTargetStrategy {
     ctx: StrategyContext,
   ): Promise<ReadonlyArray<CommitToLint>> {
     const pr = ctx.payload.pull_request;
-    if (pr === undefined) {
+    if (pr === undefined || pr === null) {
       return Object.freeze<CommitToLint[]>([]);
     }
     const title: unknown = pr.title;

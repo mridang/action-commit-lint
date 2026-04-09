@@ -53,6 +53,19 @@ describe('PrTitleStrategy', () => {
     expect(fetchCommits).not.toHaveBeenCalled();
   });
 
+  test('returns an empty list when payload.pull_request is literally null', async () => {
+    const ctx = {
+      eventName: 'pull_request',
+      payload: { pull_request: null },
+    } as unknown as StrategyContext;
+    const fetchCommits = makeFetcher();
+
+    const result = await strategy.resolve(ctx, fetchCommits);
+
+    expect(result).toEqual([]);
+    expect(fetchCommits).not.toHaveBeenCalled();
+  });
+
   test('returns an empty list when PR title is an empty string', async () => {
     const ctx: StrategyContext = {
       eventName: 'pull_request',

@@ -233,10 +233,11 @@ export async function run(
 
         if (
           lintStrategyName === 'pr-title' &&
-          ghCtx.payload.pull_request === undefined
+          (ghCtx.payload.pull_request === undefined ||
+            ghCtx.payload.pull_request === null)
         ) {
           notice(
-            `lint-strategy=pr-title: event '${ghCtx.eventName}' has no pull request in its payload, skipping. This is expected on push and merge_group events triggered by squash-merges.`,
+            `lint-strategy=pr-title: event '${ghCtx.eventName}' has no pull request in its payload, skipping. This is expected on events without a pull request context, such as a 'push' event fired after a squash-merge lands on the default branch.`,
           );
           return;
         }

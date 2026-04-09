@@ -185,6 +185,21 @@ describe('Commitlint Action Integration Tests', () => {
     },
     {
       description:
+        'lint-strategy=pr-title with pull_request literally null should skip gracefully',
+      configFileName: '.commitlintrc.json',
+      configFileContent: {
+        extends: ['@commitlint/config-conventional'],
+        rules: { 'type-enum': [2, 'always', ['feat']] },
+      },
+      createPkgJson: false,
+      inputs: { 'fail-on-errors': 'true', 'lint-strategy': 'pr-title' },
+      event: { name: 'pull_request', payload: { pull_request: null } },
+      commits: [{ sha: 'ignored', message: 'feat: ignored' }],
+      expectFetcherCalled: false,
+      expectToThrow: false,
+    },
+    {
+      description:
         'lint-strategy=both on pull_request with valid title and valid commits, should pass',
       configFileName: '.commitlintrc.json',
       configFileContent: {
