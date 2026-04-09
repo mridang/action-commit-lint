@@ -1,7 +1,7 @@
 name: Commit Linter
 
 description: |
-  GitHub Action that auto-installs commitlint configs/plugins, lints recent commits and posts a colored summary report.
+  GitHub Action that auto-installs commitlint configs/plugins, lints commits or the pull request title (configurable for squash-merge workflows) and posts a colored summary report.
 
 author: mridang
 branding:
@@ -49,6 +49,30 @@ inputs:
       A URL to display in linting error messages, pointing users to your
       commit message guidelines.
     required: false
+
+  working-directory:
+    description: >
+      The directory the action treats as the project root for resolving
+      the commitlint configuration and any installed plugins. Defaults
+      to the current process working directory (the repository root in
+      a typical workflow).
+    required: false
+
+  lint-strategy:
+    description: >
+      Which items to lint. 'commits' (default) lints each commit in the
+      event. 'pr-title' lints only the pull request title, which is the
+      message that lands in git history for squash-merge workflows.
+      'both' lints the PR title and every commit. When set to 'pr-title'
+      on events without a pull request in the payload (e.g. push,
+      merge_group), the action emits a workflow notice and exits
+      successfully instead of failing, making it safe to combine with
+      push triggers on your default branch. When using 'pr-title' on
+      pull_request triggers, include 'edited' in the trigger's 'types'
+      list so the action re-runs after a contributor fixes a bad title
+      in the GitHub UI.
+    required: false
+    default: 'commits'
 
 runs:
   using: node24

@@ -29,7 +29,7 @@
     "dist"
   ],
   "license": "Apache-2.0",
-  "description": "GitHub Action that auto-installs commitlint configs/plugins, lints recent commits and posts a colored summary report.",
+  "description": "GitHub Action that auto-installs commitlint configs/plugins, lints commits or the pull request title (configurable for squash-merge workflows) and posts a colored summary report.",
   "private": false,
   "engines": {
     "node": ">=22.0.0"

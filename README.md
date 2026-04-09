@@ -51,11 +51,46 @@ jobs:
           fail-on-warnings: 'false' # Optional: Set to 'true' to fail on warnings
           fail-on-errors: 'true' # Optional: Set to 'false' to pass with errors as warnings
           help-url: 'https://your-project.com/commit-guidelines' # Optional: Your URL for commit guidelines
-          config-file: '.commitlintrc.js' # Optional: Path to your config file
           working-directory: '.' # Optional: Default is '.'
+          lint-strategy: 'commits' # Optional: 'commits' (default) | 'pr-title' | 'both'. NOTE: 'pr-title' and 'both' require 'edited' in the pull_request trigger types — see "Squash-merge workflows" below.
 ```
 
 This workflow is configured to trigger commit linting on `pull_request` events and pushes to branches like `main` (or `develop`). It automatically validates all relevant commit messages against your defined standards, providing immediate feedback. This ensures your project's commit history remains clean and consistent from the moment changes are introduced.
+
+### Squash-merge workflows
+
+If your repository **only** uses squash-merge, the individual commits on a feature branch are thrown away at merge time; only a single squash commit lands in `main`, and its message defaults to the **PR title**. Linting the ephemeral per-commit messages in that case is busywork — the thing that actually ends up in git history is the PR title, and that's what you want to enforce conventional-commit rules on.
+
+Set `lint-strategy: pr-title` to lint the PR title instead of the commits. The action reads the title directly from the webhook payload, so no extra GitHub API calls are made.
+
+> **Important — include `edited` in `types`:** GitHub's default `pull_request` activity types are `[opened, synchronize, reopened]` and **do not include `edited`**. If you forget to add `edited`, a contributor who opens a PR with a bad title and then **fixes the title in the GitHub UI will not re-trigger the workflow**, leaving them stuck unless they push a new commit. Always opt in to `edited` when using `lint-strategy: pr-title` _or_ `lint-strategy: both`, since both strategies enforce rules on the PR title.
+
+```yaml
+name: Commit Lint
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: mridang/action-commit-lint@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          lint-strategy: pr-title
+```
+
+If you want defence-in-depth — enforce the rules on both individual commits _and_ the PR title that will become the squash commit — use `lint-strategy: both` instead. The same `edited` requirement applies: include it in your trigger's `types` so the action re-runs after a PR title is fixed.
+
+> **Safe with mixed triggers:** On `push` or `merge_group` events the payload has no PR title to read, and `lint-strategy: pr-title` will **skip linting and emit a workflow notice** rather than failing. This means you can safely combine `pull_request` and `push: branches: [main]` triggers in the same workflow without the post-merge `push` run failing.
 
 ## Inputs
 
@@ -65,6 +100,10 @@ This workflow is configured to trigger commit linting on `pull_request` events a
 - **`fail-on-warnings`** (optional, default: `'false'`): If `'true'`, the action will fail if any linting **warnings** are found. By default, warnings won't cause the action to fail.
 - **`fail-on-errors`** (optional, default: `'true'`): If `'false'`, the action will pass with a warning message even if linting **errors** are found. By default, errors will cause the action to fail.
 - **`help-url`** (optional): A URL that'll show up in linting error messages, guiding users to your project's specific commit message guidelines.
+- **`lint-strategy`** (optional, default: `'commits'`): Which items to lint.
+  - `'commits'` — lint each commit in the event. This is the default and preserves existing behaviour.
+  - `'pr-title'` — lint only the pull request title. Useful for **squash-merge** workflows where individual commit messages are discarded at merge time and the PR title becomes the squash commit message. On events without a pull request in the payload (e.g. `push`, `merge_group`) the action emits a workflow notice and skips linting (rather than failing) — this makes the strategy safe to combine with `push` triggers on your default branch. **Important:** when using this strategy on `pull_request`, include `edited` in your trigger's `types` (e.g. `types: [opened, synchronize, reopened, edited]`) so the action re-runs when a contributor fixes a bad PR title in the GitHub UI; otherwise the workflow won't re-fire after a title edit.
+  - `'both'` — lint the PR title _and_ every commit. On events without a PR title in the payload (e.g. `push`), this degrades gracefully and behaves exactly like `'commits'`. The PR title is not counted towards `commit-depth`; depth limits commits only. **Important:** as with `'pr-title'`, include `edited` in your `pull_request` trigger's `types` so the action re-runs after a contributor fixes a bad PR title in the GitHub UI.
 
 ## Outputs
 

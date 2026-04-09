@@ -257497,15 +257497,33 @@ class Results {
      */
     helpUrl;
     /**
-     * The total number of errors across all linted commits. This value is
-     * pre-calculated in the constructor for O(1) access.
+     * The total number of errors across all linted commits. A single commit
+     * with three errors contributes three to this count. Pre-calculated in
+     * the constructor for O(1) access.
      */
     errorCount;
     /**
-     * The total number of warnings across all linted commits. This value is
-     * pre-calculated in the constructor for O(1) access.
+     * The total number of warnings across all linted commits. A single
+     * commit with three warnings contributes three to this count.
+     * Pre-calculated in the constructor for O(1) access.
      */
     warningCount;
+    /**
+     * The number of distinct commits that contain at least one error. A
+     * commit with three errors contributes one to this count. Use this when
+     * reporting "N commit messages failed", as opposed to {@link errorCount}
+     * which counts individual errors. Pre-calculated in the constructor for
+     * O(1) access.
+     */
+    errorCommitsCount;
+    /**
+     * The number of distinct commits that contain at least one warning. A
+     * commit with three warnings contributes one to this count. Use this
+     * when reporting "N commit messages have warnings", as opposed to
+     * {@link warningCount} which counts individual warnings. Pre-calculated
+     * in the constructor for O(1) access.
+     */
+    warningCommitsCount;
     /**
      * Constructs a new Results instance. It eagerly processes the provided
      * linting results to generate and store aggregate counts for errors and
@@ -257517,12 +257535,21 @@ class Results {
     constructor(items, helpUrl) {
         this.items = items;
         this.helpUrl = helpUrl;
-        const { errorCount, warningCount } = items.reduce((counts, item) => ({
+        const { errorCount, warningCount, errorCommitsCount, warningCommitsCount } = items.reduce((counts, item) => ({
             errorCount: counts.errorCount + item.errors.length,
             warningCount: counts.warningCount + item.warnings.length,
-        }), { errorCount: 0, warningCount: 0 });
+            errorCommitsCount: counts.errorCommitsCount + (item.errors.length > 0 ? 1 : 0),
+            warningCommitsCount: counts.warningCommitsCount + (item.warnings.length > 0 ? 1 : 0),
+        }), {
+            errorCount: 0,
+            warningCount: 0,
+            errorCommitsCount: 0,
+            warningCommitsCount: 0,
+        });
         this.errorCount = errorCount;
         this.warningCount = warningCount;
+        this.errorCommitsCount = errorCommitsCount;
+        this.warningCommitsCount = warningCommitsCount;
     }
     /**
      * Gets the total number of commits that were analyzed by the linter.
@@ -284052,17 +284079,22 @@ class DefaultFormatter {
         await summary.write();
     }
     formatSummary(results, summary) {
-        const errorCommitsCount = results.items.filter((item) => item.errors.length > 0).length;
+        const errorCommitsCount = results.errorCommitsCount;
         const warningOnlyCommitsCount = results.items.filter((item) => item.errors.length === 0 && item.warnings.length > 0).length;
         const cleanCommitsCount = results.checkedCount - errorCommitsCount - warningOnlyCommitsCount;
+        const headlineNoun = results.checkedCount === 1 ? 'message was' : 'messages were';
+        const cleanNoun = cleanCommitsCount === 1 ? 'message' : 'messages';
+        const cleanVerb = cleanCommitsCount === 1 ? 'follows' : 'follow';
+        const warnNoun = warningOnlyCommitsCount === 1 ? 'message has' : 'messages have';
+        const errorNoun = errorCommitsCount === 1 ? 'message' : 'messages';
         const summaryLines = [
-            `The following ${results.checkedCount} commits were analyzed as part of this push.`,
+            `The following ${results.checkedCount} ${headlineNoun} analyzed.`,
             cleanCommitsCount > 0 &&
-                `${cleanCommitsCount} commits passed commitlint checks and follow the conventional commit format.`,
+                `${cleanCommitsCount} ${cleanNoun} passed commitlint checks and ${cleanVerb} the conventional commit format.`,
             warningOnlyCommitsCount > 0 &&
-                `${warningOnlyCommitsCount} commit${warningOnlyCommitsCount > 1 ? 's have' : ' has'} warnings that should be reviewed.`,
+                `${warningOnlyCommitsCount} ${warnNoun} warnings that should be reviewed.`,
             errorCommitsCount > 0 &&
-                `${errorCommitsCount} commit${errorCommitsCount > 1 ? 's' : ''} failed and must be corrected.`,
+                `${errorCommitsCount} ${errorNoun} failed and must be corrected.`,
         ]
             .filter((line) => typeof line === 'string')
             .join(' ');
@@ -284074,7 +284106,7 @@ class DefaultFormatter {
         }
         const header = [
             { data: 'Status', header: true },
-            { data: 'SHA', header: true },
+            { data: 'ID', header: true },
             { data: 'Message', header: true },
             { data: 'Notes', header: true },
         ];
@@ -284108,6 +284140,155 @@ class DefaultFormatter {
             .addEOL()
             .addEOL();
         summary.addQuote(`💡 Tip: Use \`git commit --amend\` or \`git rebase -i\` to fix commits locally.`);
+    }
+}
+
+/**
+ * Lints every commit returned by the event's fetcher. This is the default
+ * behaviour and preserves backwards compatibility with workflows that do
+ * not specify a `lint-strategy` input.
+ */
+class CommitsStrategy {
+    /**
+     * Invokes the supplied fetcher callback and returns its result
+     * verbatim. Ignores the strategy context entirely; the event-specific
+     * fetcher is the sole source of items.
+     *
+     * @param _ctx Unused; present to satisfy the {@link LintTargetStrategy}
+     * contract.
+     * @param fetchCommits Callback that produces the commits for the
+     * current event (already depth-limited by `run()`).
+     * @returns The commits returned by `fetchCommits`, unchanged.
+     */
+    async resolve(_ctx, fetchCommits) {
+        return fetchCommits();
+    }
+}
+
+/**
+ * Lints only the pull request title read from the webhook payload. Does
+ * not invoke the commit fetcher, so no GitHub API call is made on behalf
+ * of this strategy. On events without a `pull_request` payload (push,
+ * merge_group) it returns an empty list; the caller then triggers the
+ * action's standard "No commits found to lint" failure path.
+ *
+ * The synthetic hash is shaped `pr-{number}-title` so it renders
+ * distinctly from a real SHA in the job summary.
+ *
+ * Reads `payload.pull_request` directly from `WebhookPayload`. The
+ * upstream type guarantees `number: number` when `pull_request` is
+ * present, but `title` arrives via the `[key: string]: any` index
+ * signature, so it is captured as `unknown` and runtime-checked before
+ * use to keep `any` from leaking into the rest of the code.
+ */
+class PrTitleStrategy {
+    /**
+     * Builds a single-element list containing the pull request title as a
+     * synthetic {@link CommitToLint}, or an empty list when the payload
+     * has no usable PR title. Never invokes `fetchCommits`, so the
+     * underlying GitHub API call is skipped entirely when this strategy
+     * is selected.
+     *
+     * @param ctx Read-only context whose `payload.pull_request` is
+     * inspected for `title`.
+     * @returns A frozen list with one frozen item on PR events with a
+     * non-empty title, otherwise a frozen empty list.
+     */
+    async resolve(ctx) {
+        const pr = ctx.payload.pull_request;
+        if (pr === undefined || pr === null) {
+            return Object.freeze([]);
+        }
+        const title = pr.title;
+        if (typeof title !== 'string' || title.length === 0) {
+            return Object.freeze([]);
+        }
+        const item = Object.freeze({
+            message: title,
+            hash: `pr-${pr.number}-title`,
+        });
+        return Object.freeze([item]);
+    }
+}
+
+/**
+ * Lints the pull request title and every commit. Composes
+ * {@link PrTitleStrategy} and {@link CommitsStrategy} and concatenates
+ * their results with the title first.
+ *
+ * Gracefully degrades on events without a `pull_request` payload: the
+ * title half yields an empty list and the commits half returns whatever
+ * the fetcher provides, so this strategy is equivalent to `commits` on
+ * push and merge_group events.
+ *
+ * The PR title is never trimmed by `commit-depth`; depth is applied to
+ * the commits inside the `fetchCommits` callback passed from `run()`,
+ * and the title is prepended afterwards.
+ */
+class BothStrategy {
+    commits;
+    prTitle;
+    /**
+     * Constructs the composite strategy. Both sub-strategies have sensible
+     * defaults; the parameters exist primarily so unit tests can inject
+     * mocks and verify delegation.
+     *
+     * @param commits Strategy used to resolve the commit half of the
+     * result. Defaults to a fresh {@link CommitsStrategy}.
+     * @param prTitle Strategy used to resolve the title half of the
+     * result. Defaults to a fresh {@link PrTitleStrategy}.
+     */
+    constructor(commits = new CommitsStrategy(), prTitle = new PrTitleStrategy()) {
+        this.commits = commits;
+        this.prTitle = prTitle;
+    }
+    /**
+     * Resolves both halves in parallel and concatenates them, title first.
+     * The two sub-strategies are invoked with the same `fetchCommits`
+     * callback; in practice only the commit sub-strategy actually calls
+     * it, so the underlying fetch happens at most once per `resolve()`.
+     *
+     * @param ctx Read-only context forwarded to both sub-strategies.
+     * @param fetchCommits Callback that produces the commits for the
+     * current event (already depth-limited by `run()`).
+     * @returns A frozen list shaped `[title, ...commits]`. On non-PR
+     * events the title half yields nothing, so the result equals the
+     * commits the fetcher returned.
+     */
+    async resolve(ctx, fetchCommits) {
+        const [titleItems, commitItems] = await Promise.all([
+            this.prTitle.resolve(ctx, fetchCommits),
+            this.commits.resolve(ctx, fetchCommits),
+        ]);
+        return Object.freeze([...titleItems, ...commitItems]);
+    }
+}
+
+/**
+ * Constructs a {@link LintTargetStrategy} for the given name. The caller
+ * is responsible for validating the input value before invoking this
+ * factory; all three valid names are handled exhaustively. The default
+ * branch is unreachable under TypeScript's type checker but throws at
+ * runtime as a defensive guard against unchecked casts and future
+ * additions to {@link LintStrategyName} that forget to update this
+ * switch.
+ *
+ * @param name The parsed `lint-strategy` input value.
+ * @returns A ready-to-use strategy instance.
+ * @throws {Error} If `name` is not a recognised strategy at runtime.
+ */
+function getLintStrategy$1(name) {
+    switch (name) {
+        case 'commits':
+            return new CommitsStrategy();
+        case 'pr-title':
+            return new PrTitleStrategy();
+        case 'both':
+            return new BothStrategy();
+        default: {
+            const exhaustive = name;
+            throw new Error(`Unknown lint strategy: ${exhaustive}`);
+        }
     }
 }
 
@@ -284202,6 +284383,30 @@ function getHelpURL() {
     return coreExports.getInput('help-url');
 }
 /**
+ * Retrieves the 'lint-strategy' input and narrows it to a
+ * {@link LintStrategyName}. Empty input defaults to `'commits'` to
+ * preserve backwards compatibility.
+ *
+ * @returns The parsed strategy name.
+ * @throws {Error} If the input is set to a value other than
+ * `'commits'`, `'pr-title'`, `'both'`, or the empty string.
+ */
+function getLintStrategy() {
+    const raw = coreExports.getInput('lint-strategy').trim().toLowerCase();
+    if (raw === '' || raw === 'commits') {
+        return 'commits';
+    }
+    else if (raw === 'pr-title') {
+        return 'pr-title';
+    }
+    else if (raw === 'both') {
+        return 'both';
+    }
+    else {
+        throw new Error(`Invalid value for "lint-strategy". Expected 'commits', 'pr-title', or 'both', but received '${raw}'.`);
+    }
+}
+/**
  * Retrieves the working directory from the action's 'working-directory' input.
  *
  * @returns The specified working directory or the current process's
@@ -284278,10 +284483,21 @@ async function run(ghCtx = new contextExports.Context(), commitFetcherFactory = 
             coreExports.info(`Fetching commits for event: ${ghCtx.eventName}`);
             const commitFetcher = commitFetcherFactory(ghCtx.eventName);
             if (commitFetcher) {
-                const eventCommits = await commitFetcher.fetchCommits(githubToken, ghCtx.repo.owner, ghCtx.repo.repo, ghCtx.payload);
-                const commitsToLint = commitDepth && eventCommits.length > commitDepth
-                    ? eventCommits.slice(0, commitDepth)
-                    : eventCommits;
+                const lintStrategyName = getLintStrategy();
+                if (lintStrategyName === 'pr-title' &&
+                    (ghCtx.payload.pull_request === undefined ||
+                        ghCtx.payload.pull_request === null)) {
+                    coreExports.notice(`lint-strategy=pr-title: event '${ghCtx.eventName}' has no pull request in its payload, skipping. This is expected on events without a pull request context (e.g. 'push' fired after a squash-merge lands on the default branch, or 'merge_group' from the merge queue).`);
+                    return;
+                }
+                const strategy = getLintStrategy$1(lintStrategyName);
+                const fetchAndLimit = async () => {
+                    const all = await commitFetcher.fetchCommits(githubToken, ghCtx.repo.owner, ghCtx.repo.repo, ghCtx.payload);
+                    return commitDepth && all.length > commitDepth
+                        ? all.slice(0, commitDepth)
+                        : all;
+                };
+                const commitsToLint = await strategy.resolve({ eventName: ghCtx.eventName, payload: ghCtx.payload }, fetchAndLimit);
                 if (commitsToLint.length > 0) {
                     coreExports.startGroup('Running commit-lint');
                     const failOnWarns = getFailOnWarnings();
@@ -284291,7 +284507,7 @@ async function run(ghCtx = new contextExports.Context(), commitFetcherFactory = 
                     await result1.format(new DefaultFormatter());
                     if (result1.hasErrors) {
                         if (failOnErrs) {
-                            setFailed(`Found ${result1.errorCount} commit messages with errors`);
+                            setFailed(`Found ${result1.errorCommitsCount} commit message${result1.errorCommitsCount === 1 ? '' : 's'} with errors`);
                         }
                         else {
                             coreExports.warning(`Commit messages have errors, but 'fail-on-errors' is false.`);
@@ -284299,14 +284515,14 @@ async function run(ghCtx = new contextExports.Context(), commitFetcherFactory = 
                     }
                     else if (result1.hasOnlyWarnings) {
                         if (failOnWarns) {
-                            setFailed(`Found ${result1.warningCount} commit messages with warnings`);
+                            setFailed(`Found ${result1.warningCommitsCount} commit message${result1.warningCommitsCount === 1 ? '' : 's'} with warnings`);
                         }
                         else {
-                            coreExports.warning(`Commit messages have warning, but 'fail-on-warnings' is false.`);
+                            coreExports.warning(`Commit messages have warnings, but 'fail-on-warnings' is false.`);
                         }
                     }
                     else {
-                        coreExports.info(`All ${result1.checkedCount} commit messages are okay.`);
+                        coreExports.info(`All ${result1.checkedCount} commit message${result1.checkedCount === 1 ? ' is' : 's are'} okay.`);
                     }
                     coreExports.endGroup();
                 }

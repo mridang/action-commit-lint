@@ -19,23 +19,28 @@ export default class DefaultFormatter implements Formatter {
   }
 
   private formatSummary(results: Results, summary: Summary): void {
-    const errorCommitsCount = results.items.filter(
-      (item) => item.errors.length > 0,
-    ).length;
+    const errorCommitsCount = results.errorCommitsCount;
     const warningOnlyCommitsCount = results.items.filter(
       (item) => item.errors.length === 0 && item.warnings.length > 0,
     ).length;
     const cleanCommitsCount =
       results.checkedCount - errorCommitsCount - warningOnlyCommitsCount;
 
+    const headlineNoun =
+      results.checkedCount === 1 ? 'message was' : 'messages were';
+    const cleanNoun = cleanCommitsCount === 1 ? 'message' : 'messages';
+    const cleanVerb = cleanCommitsCount === 1 ? 'follows' : 'follow';
+    const warnNoun =
+      warningOnlyCommitsCount === 1 ? 'message has' : 'messages have';
+    const errorNoun = errorCommitsCount === 1 ? 'message' : 'messages';
     const summaryLines = [
-      `The following ${results.checkedCount} commits were analyzed as part of this push.`,
+      `The following ${results.checkedCount} ${headlineNoun} analyzed.`,
       cleanCommitsCount > 0 &&
-        `${cleanCommitsCount} commits passed commitlint checks and follow the conventional commit format.`,
+        `${cleanCommitsCount} ${cleanNoun} passed commitlint checks and ${cleanVerb} the conventional commit format.`,
       warningOnlyCommitsCount > 0 &&
-        `${warningOnlyCommitsCount} commit${warningOnlyCommitsCount > 1 ? 's have' : ' has'} warnings that should be reviewed.`,
+        `${warningOnlyCommitsCount} ${warnNoun} warnings that should be reviewed.`,
       errorCommitsCount > 0 &&
-        `${errorCommitsCount} commit${errorCommitsCount > 1 ? 's' : ''} failed and must be corrected.`,
+        `${errorCommitsCount} ${errorNoun} failed and must be corrected.`,
     ]
       .filter((line): line is string => typeof line === 'string')
       .join(' ');
@@ -50,7 +55,7 @@ export default class DefaultFormatter implements Formatter {
 
     const header: SummaryTableRow = [
       { data: 'Status', header: true },
-      { data: 'SHA', header: true },
+      { data: 'ID', header: true },
       { data: 'Message', header: true },
       { data: 'Notes', header: true },
     ];
