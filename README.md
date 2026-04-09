@@ -64,7 +64,7 @@ If your repository **only** uses squash-merge, the individual commits on a featu
 
 Set `lint-strategy: pr-title` to lint the PR title instead of the commits. The action reads the title directly from the webhook payload, so no extra GitHub API calls are made.
 
-> **Important — include `edited` in `types`:** GitHub's default `pull_request` activity types are `[opened, synchronize, reopened]` and **do not include `edited`**. If you forget to add `edited`, a contributor who opens a PR with a bad title and then **fixes the title in the GitHub UI will not re-trigger the workflow**, leaving them stuck unless they push a new commit. Always opt in to `edited` when using `lint-strategy: pr-title`.
+> **Important — include `edited` in `types`:** GitHub's default `pull_request` activity types are `[opened, synchronize, reopened]` and **do not include `edited`**. If you forget to add `edited`, a contributor who opens a PR with a bad title and then **fixes the title in the GitHub UI will not re-trigger the workflow**, leaving them stuck unless they push a new commit. Always opt in to `edited` when using `lint-strategy: pr-title` _or_ `lint-strategy: both`, since both strategies enforce rules on the PR title.
 
 ```yaml
 name: Commit Lint
@@ -89,7 +89,7 @@ jobs:
           lint-strategy: pr-title
 ```
 
-If you want defence-in-depth — enforce the rules on both individual commits _and_ the PR title that will become the squash commit — use `lint-strategy: both` instead.
+If you want defence-in-depth — enforce the rules on both individual commits _and_ the PR title that will become the squash commit — use `lint-strategy: both` instead. The same `edited` requirement applies: include it in your trigger's `types` so the action re-runs after a PR title is fixed.
 
 > **Safe with mixed triggers:** On `push` or `merge_group` events the payload has no PR title to read, and `lint-strategy: pr-title` will **skip linting and emit a workflow notice** rather than failing. This means you can safely combine `pull_request` and `push: branches: [main]` triggers in the same workflow without the post-merge `push` run failing.
 
@@ -104,7 +104,7 @@ If you want defence-in-depth — enforce the rules on both individual commits _a
 - **`lint-strategy`** (optional, default: `'commits'`): Which items to lint.
   - `'commits'` — lint each commit in the event. This is the default and preserves existing behaviour.
   - `'pr-title'` — lint only the pull request title. Useful for **squash-merge** workflows where individual commit messages are discarded at merge time and the PR title becomes the squash commit message. On events without a pull request in the payload (e.g. `push`, `merge_group`) the action emits a workflow notice and skips linting (rather than failing) — this makes the strategy safe to combine with `push` triggers on your default branch. **Important:** when using this strategy on `pull_request`, include `edited` in your trigger's `types` (e.g. `types: [opened, synchronize, reopened, edited]`) so the action re-runs when a contributor fixes a bad PR title in the GitHub UI; otherwise the workflow won't re-fire after a title edit.
-  - `'both'` — lint the PR title _and_ every commit. On events without a PR title in the payload (e.g. `push`), this degrades gracefully and behaves exactly like `'commits'`. The PR title is not counted towards `commit-depth`; depth limits commits only.
+  - `'both'` — lint the PR title _and_ every commit. On events without a PR title in the payload (e.g. `push`), this degrades gracefully and behaves exactly like `'commits'`. The PR title is not counted towards `commit-depth`; depth limits commits only. **Important:** as with `'pr-title'`, include `edited` in your `pull_request` trigger's `types` so the action re-runs after a contributor fixes a bad PR title in the GitHub UI.
 
 ## Outputs
 

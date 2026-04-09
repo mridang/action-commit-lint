@@ -24,4 +24,10 @@ describe('getLintStrategy factory', () => {
       expect(strategy).toBeInstanceOf(expected);
     },
   );
+
+  test('throws on an unrecognised strategy name (defensive default branch)', () => {
+    expect(() =>
+      getLintStrategy('totally-bogus' as unknown as LintStrategyName),
+    ).toThrow('Unknown lint strategy: totally-bogus');
+  });
 });

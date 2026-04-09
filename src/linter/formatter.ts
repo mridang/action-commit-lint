@@ -28,14 +28,16 @@ export default class DefaultFormatter implements Formatter {
     const cleanCommitsCount =
       results.checkedCount - errorCommitsCount - warningOnlyCommitsCount;
 
+    const itemNoun =
+      results.checkedCount === 1 ? 'message was' : 'messages were';
     const summaryLines = [
-      `The following ${results.checkedCount} commits were analyzed as part of this push.`,
+      `The following ${results.checkedCount} ${itemNoun} analyzed.`,
       cleanCommitsCount > 0 &&
-        `${cleanCommitsCount} commits passed commitlint checks and follow the conventional commit format.`,
+        `${cleanCommitsCount} passed commitlint checks and follow the conventional commit format.`,
       warningOnlyCommitsCount > 0 &&
-        `${warningOnlyCommitsCount} commit${warningOnlyCommitsCount > 1 ? 's have' : ' has'} warnings that should be reviewed.`,
+        `${warningOnlyCommitsCount} ${warningOnlyCommitsCount > 1 ? 'have' : 'has'} warnings that should be reviewed.`,
       errorCommitsCount > 0 &&
-        `${errorCommitsCount} commit${errorCommitsCount > 1 ? 's' : ''} failed and must be corrected.`,
+        `${errorCommitsCount} failed and must be corrected.`,
     ]
       .filter((line): line is string => typeof line === 'string')
       .join(' ');
@@ -50,7 +52,7 @@ export default class DefaultFormatter implements Formatter {
 
     const header: SummaryTableRow = [
       { data: 'Status', header: true },
-      { data: 'SHA', header: true },
+      { data: 'ID', header: true },
       { data: 'Message', header: true },
       { data: 'Notes', header: true },
     ];

@@ -52,10 +52,15 @@ export interface LintTargetStrategy {
 /**
  * Constructs a {@link LintTargetStrategy} for the given name. The caller
  * is responsible for validating the input value before invoking this
- * factory; all three valid names are handled exhaustively.
+ * factory; all three valid names are handled exhaustively. The default
+ * branch is unreachable under TypeScript's type checker but throws at
+ * runtime as a defensive guard against unchecked casts and future
+ * additions to {@link LintStrategyName} that forget to update this
+ * switch.
  *
  * @param name The parsed `lint-strategy` input value.
  * @returns A ready-to-use strategy instance.
+ * @throws {Error} If `name` is not a recognised strategy at runtime.
  */
 export function getLintStrategy(name: LintStrategyName): LintTargetStrategy {
   switch (name) {
@@ -65,6 +70,10 @@ export function getLintStrategy(name: LintStrategyName): LintTargetStrategy {
       return new PrTitleStrategy();
     case 'both':
       return new BothStrategy();
+    default: {
+      const exhaustive: never = name;
+      throw new Error(`Unknown lint strategy: ${exhaustive as string}`);
+    }
   }
 }
 

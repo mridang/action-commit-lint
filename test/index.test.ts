@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, jest, test } from '@jest/globals';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 // noinspection ES6PreferShortImport
@@ -81,7 +81,7 @@ describe('Commitlint Action Integration Tests', () => {
       event: { name: 'push', payload: {} },
       commits: [{ sha: 'err1', message: 'feat: an invalid type' }],
       expectToThrow: true,
-      expectedErrorMessage: 'Found 1 commit messages with errors',
+      expectedErrorMessage: 'Found 1 commit message with errors',
     },
     {
       description: 'Imperative config, valid commit, should pass',
@@ -151,7 +151,7 @@ describe('Commitlint Action Integration Tests', () => {
       commits: [],
       expectFetcherCalled: false,
       expectToThrow: true,
-      expectedErrorMessage: 'Found 1 commit messages with errors',
+      expectedErrorMessage: 'Found 1 commit message with errors',
     },
     {
       description:
@@ -241,7 +241,7 @@ describe('Commitlint Action Integration Tests', () => {
       commits: [{ sha: 'cmt2', message: 'feat: a valid commit' }],
       expectFetcherCalled: true,
       expectToThrow: true,
-      expectedErrorMessage: 'Found 1 commit messages with errors',
+      expectedErrorMessage: 'Found 1 commit message with errors',
     },
     {
       description:
@@ -317,6 +317,59 @@ describe('Commitlint Action Integration Tests', () => {
       } else {
         await expect(action()).resolves.not.toThrow();
       }
+    })();
+  });
+
+  test('emits a workflow notice when lint-strategy=pr-title skips on a non-PR event', () => {
+    return withTempDir(async ({ tmp }) => {
+      writeFileSync(
+        join(tmp, '.commitlintrc.json'),
+        JSON.stringify({
+          extends: ['@commitlint/config-conventional'],
+          rules: { 'type-enum': [2, 'always', ['feat']] },
+        }),
+      );
+
+      const stdoutChunks: string[] = [];
+      const stdoutSpy = jest
+        .spyOn(process.stdout, 'write')
+        .mockImplementation(((chunk: string | Uint8Array): boolean => {
+          stdoutChunks.push(
+            typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString(),
+          );
+          return true;
+        }) as typeof process.stdout.write);
+
+      try {
+        await runAction(
+          {
+            'github-token': 'fake-token',
+            'working-directory': tmp,
+            'fail-on-errors': 'true',
+            'lint-strategy': 'pr-title',
+          },
+          {
+            GITHUB_WORKSPACE: tmp,
+            GITHUB_EVENT_NAME: 'push',
+            GITHUB_REPOSITORY: 'test-owner/test-repo',
+          },
+          {},
+          (): ICommitFetcher | null => ({
+            fetchCommits: async (): Promise<CommitToLint[]> => {
+              throw new Error(
+                'fetchCommits must not be invoked on the skip path',
+              );
+            },
+          }),
+        );
+      } finally {
+        stdoutSpy.mockRestore();
+      }
+
+      const allOutput = stdoutChunks.join('');
+      expect(allOutput).toContain('::notice::');
+      expect(allOutput).toContain('lint-strategy=pr-title');
+      expect(allOutput).toContain("event 'push'");
     })();
   });
 });

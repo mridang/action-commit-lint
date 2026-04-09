@@ -284055,14 +284055,15 @@ class DefaultFormatter {
         const errorCommitsCount = results.items.filter((item) => item.errors.length > 0).length;
         const warningOnlyCommitsCount = results.items.filter((item) => item.errors.length === 0 && item.warnings.length > 0).length;
         const cleanCommitsCount = results.checkedCount - errorCommitsCount - warningOnlyCommitsCount;
+        const itemNoun = results.checkedCount === 1 ? 'message was' : 'messages were';
         const summaryLines = [
-            `The following ${results.checkedCount} commits were analyzed as part of this push.`,
+            `The following ${results.checkedCount} ${itemNoun} analyzed.`,
             cleanCommitsCount > 0 &&
-                `${cleanCommitsCount} commits passed commitlint checks and follow the conventional commit format.`,
+                `${cleanCommitsCount} passed commitlint checks and follow the conventional commit format.`,
             warningOnlyCommitsCount > 0 &&
-                `${warningOnlyCommitsCount} commit${warningOnlyCommitsCount > 1 ? 's have' : ' has'} warnings that should be reviewed.`,
+                `${warningOnlyCommitsCount} ${warningOnlyCommitsCount > 1 ? 'have' : 'has'} warnings that should be reviewed.`,
             errorCommitsCount > 0 &&
-                `${errorCommitsCount} commit${errorCommitsCount > 1 ? 's' : ''} failed and must be corrected.`,
+                `${errorCommitsCount} failed and must be corrected.`,
         ]
             .filter((line) => typeof line === 'string')
             .join(' ');
@@ -284074,7 +284075,7 @@ class DefaultFormatter {
         }
         const header = [
             { data: 'Status', header: true },
-            { data: 'SHA', header: true },
+            { data: 'ID', header: true },
             { data: 'Message', header: true },
             { data: 'Notes', header: true },
         ];
@@ -284235,10 +284236,15 @@ class BothStrategy {
 /**
  * Constructs a {@link LintTargetStrategy} for the given name. The caller
  * is responsible for validating the input value before invoking this
- * factory; all three valid names are handled exhaustively.
+ * factory; all three valid names are handled exhaustively. The default
+ * branch is unreachable under TypeScript's type checker but throws at
+ * runtime as a defensive guard against unchecked casts and future
+ * additions to {@link LintStrategyName} that forget to update this
+ * switch.
  *
  * @param name The parsed `lint-strategy` input value.
  * @returns A ready-to-use strategy instance.
+ * @throws {Error} If `name` is not a recognised strategy at runtime.
  */
 function getLintStrategy$1(name) {
     switch (name) {
@@ -284248,6 +284254,10 @@ function getLintStrategy$1(name) {
             return new PrTitleStrategy();
         case 'both':
             return new BothStrategy();
+        default: {
+            const exhaustive = name;
+            throw new Error(`Unknown lint strategy: ${exhaustive}`);
+        }
     }
 }
 
@@ -284466,7 +284476,7 @@ async function run(ghCtx = new contextExports.Context(), commitFetcherFactory = 
                     await result1.format(new DefaultFormatter());
                     if (result1.hasErrors) {
                         if (failOnErrs) {
-                            setFailed(`Found ${result1.errorCount} commit messages with errors`);
+                            setFailed(`Found ${result1.errorCount} commit message${result1.errorCount === 1 ? '' : 's'} with errors`);
                         }
                         else {
                             coreExports.warning(`Commit messages have errors, but 'fail-on-errors' is false.`);
@@ -284474,7 +284484,7 @@ async function run(ghCtx = new contextExports.Context(), commitFetcherFactory = 
                     }
                     else if (result1.hasOnlyWarnings) {
                         if (failOnWarns) {
-                            setFailed(`Found ${result1.warningCount} commit messages with warnings`);
+                            setFailed(`Found ${result1.warningCount} commit message${result1.warningCount === 1 ? '' : 's'} with warnings`);
                         }
                         else {
                             coreExports.warning(`Commit messages have warning, but 'fail-on-warnings' is false.`);
