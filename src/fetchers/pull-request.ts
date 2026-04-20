@@ -11,9 +11,7 @@ import { getOctokit } from '@actions/github';
  * Implements {@link ICommitFetcher} to retrieve commits associated with a
  * GitHub pull request event. It primarily uses the `pullNumber` argument.
  */
-export class PullRequestCommitFetcher
-  implements ICommitFetcher<PullRequestEventPayloadSubset>
-{
+export class PullRequestCommitFetcher implements ICommitFetcher<PullRequestEventPayloadSubset> {
   /**
    * Fetches all the commits for a given pull request.
    *

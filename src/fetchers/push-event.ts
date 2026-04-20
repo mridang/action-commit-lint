@@ -18,9 +18,7 @@ import { getOctokit } from '@actions/github';
  * force push to the same ref), it will use the `commits` array from the
  * event payload subset if available.
  */
-export class PushEventCommitFetcher
-  implements ICommitFetcher<PushEventPayloadSubset>
-{
+export class PushEventCommitFetcher implements ICommitFetcher<PushEventPayloadSubset> {
   /**
    * Fetches commits from a push event.
    *
