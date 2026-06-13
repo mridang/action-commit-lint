@@ -239,4 +239,71 @@ describe('Linter', () => {
       expect(result.hasOnlyWarnings).toBe(false);
     }),
   );
+
+  // Regression guard: a header scope such as `fix(deps): ...` is parsed as a
+  // scope and must not change the linting outcome. A scoped header with a
+  // clean body passes, while failures come from body content (e.g. an
+  // over-long body line) regardless of whether a scope is present. This
+  // pins down the behaviour so the parenthesised scope is never mistaken
+  // for the cause of an unrelated body-max-line-length failure.
+  describe('header scope handling', () => {
+    const scopeConfig = {
+      rules: {
+        'type-enum': [RuleConfigSeverity.Error, 'always', ['feat', 'fix']],
+        'body-max-line-length': [RuleConfigSeverity.Error, 'always', 200],
+      },
+    };
+    const longLine = 'x'.repeat(201);
+    const shortBody = 'a clean, well-wrapped body line';
+
+    it(
+      'passes a scoped header with a compliant body',
+      withTempDir(async ({ tmp: projectDir }) => {
+        const configPath = createCommitlintrcJson(
+          projectDir,
+          scopeConfig,
+          '.commitlintrc.json',
+        );
+        const linter = new Linter(
+          [{ hash: 'sc01', message: `fix(deps): bump a dep\n\n${shortBody}` }],
+          configPath,
+          '',
+          projectDir,
+        );
+        const result = await linter.lint();
+
+        expect(result.items[0].valid).toBe(true);
+        expect(result.hasErrors).toBe(false);
+      }),
+    );
+
+    it(
+      'fails on an over-long body line whether or not a scope is present',
+      withTempDir(async ({ tmp: projectDir }) => {
+        const configPath = createCommitlintrcJson(
+          projectDir,
+          scopeConfig,
+          '.commitlintrc.json',
+        );
+        const linter = new Linter(
+          [
+            { hash: 'sc02', message: `fix(deps): bump a dep\n\n${longLine}` },
+            { hash: 'sc03', message: `fix: bump a dep\n\n${longLine}` },
+          ],
+          configPath,
+          '',
+          projectDir,
+        );
+        const result = await linter.lint();
+
+        const errorNames = result.items.map((item) =>
+          item.errors.map((error) => error.name),
+        );
+        expect(errorNames).toEqual([
+          ['body-max-line-length'],
+          ['body-max-line-length'],
+        ]);
+      }),
+    );
+  });
 });
