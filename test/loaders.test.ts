@@ -77,3 +77,26 @@ it.each([
       );
     })(),
 );
+
+it('pins an unversioned @commitlint/* config to the bundled engine major', () =>
+  withTempDir(async ({ tmp }) => {
+    const filepath = join(tmp, '.commitlintrc.json');
+    writeFileSync(
+      filepath,
+      JSON.stringify({ extends: ['@commitlint/config-conventional'] }, null, 2),
+    );
+
+    const explorer = cosmiconfig('commitlint', {
+      stopDir: tmp,
+      loaders: createLoaders(),
+    });
+
+    const result = await explorer.search(tmp);
+    expect(result?.filepath).toBe(filepath);
+
+    const pkgJson = JSON.parse(readFileSync(join(tmp, 'package.json'), 'utf8'));
+    const deps = pkgJson.dependencies || pkgJson.devDependencies;
+    // Must NOT be '*' (which resolves to config-conventional@20, ESM-only and
+    // incompatible with the bundled v19 engine — breaks `feat!:` parsing, #37).
+    expect(deps['@commitlint/config-conventional']).toBe('^19');
+  })());
