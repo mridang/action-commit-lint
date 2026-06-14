@@ -7,6 +7,29 @@ import type { Loader } from 'cosmiconfig';
 import { defaultLoaders } from 'cosmiconfig';
 
 /**
+ * Major version of the commitlint engine this action bundles (see the
+ * `@commitlint/*` entries in package.json). Keep in sync when bumping them.
+ */
+const COMMITLINT_ENGINE_RANGE = '^19';
+
+/**
+ * Default version range for a detected config/plugin that was declared
+ * without an explicit one (e.g. `extends: ["@commitlint/config-conventional"]`).
+ *
+ * Most packages default to `*` (latest). The exception is the `@commitlint/*`
+ * scope: those configs ship a `parserPreset` consumed by the bundled
+ * commitlint engine, so installing a newer major than the engine breaks
+ * config loading. Concretely, `@commitlint/config-conventional@20` is ESM-only
+ * and its parser preset is not loaded by the v19 engine, which makes the
+ * conventional breaking-change `!` (e.g. `feat!: ...`) parse as an empty
+ * header and fail with "type/subject may not be empty". Pin the scope to the
+ * engine's major so the resolved config always matches. See issue #37.
+ */
+function defaultVersionFor(name: string): string {
+  return name.startsWith('@commitlint/') ? COMMITLINT_ENGINE_RANGE : '*';
+}
+
+/**
  * Creates a loader that extracts plugin dependencies from declarative configs
  * and generates a package.json file with versions if specified.
  *
@@ -57,7 +80,7 @@ function declarativeLoader(loader: Loader): Loader {
             if (at > 0 && entry.startsWith('@')) {
               acc[name] = entry.slice(at + 1);
             } else {
-              acc[name] = '*';
+              acc[name] = defaultVersionFor(name);
             }
           }
 
