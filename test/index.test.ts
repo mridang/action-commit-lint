@@ -372,4 +372,69 @@ describe('Commitlint Action Integration Tests', () => {
       expect(allOutput).toContain("event 'push'");
     })();
   });
+
+  test('emits one error line per failing commit with the rule reason', () => {
+    return withTempDir(async ({ tmp }) => {
+      writeFileSync(
+        join(tmp, '.commitlintrc.json'),
+        JSON.stringify({
+          extends: ['@commitlint/config-conventional'],
+          rules: { 'body-max-line-length': [2, 'always', 200] },
+        }),
+      );
+
+      const longLine = 'x'.repeat(201);
+      const stdoutChunks: string[] = [];
+      const stdoutSpy = jest
+        .spyOn(process.stdout, 'write')
+        .mockImplementation(((chunk: string | Uint8Array): boolean => {
+          stdoutChunks.push(
+            typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString(),
+          );
+          return true;
+        }) as typeof process.stdout.write);
+
+      try {
+        await expect(
+          runAction(
+            {
+              'github-token': 'fake-token',
+              'working-directory': tmp,
+              'fail-on-errors': 'true',
+            },
+            {
+              GITHUB_WORKSPACE: tmp,
+              GITHUB_EVENT_NAME: 'push',
+              GITHUB_REPOSITORY: 'test-owner/test-repo',
+            },
+            {},
+            (): ICommitFetcher | null => ({
+              fetchCommits: async (): Promise<CommitToLint[]> => [
+                {
+                  hash: 'aaa1111',
+                  message: `fix(deps): bump dep\n\n${longLine}`,
+                },
+                { hash: 'bbb2222', message: `fix: another\n\n${longLine}` },
+              ],
+            }),
+          ),
+        ).rejects.toThrow('Found 2 commit messages with errors');
+      } finally {
+        stdoutSpy.mockRestore();
+      }
+
+      const allOutput = stdoutChunks.join('');
+      // One annotation per failing commit, each carrying the rule reason and
+      // the commit hash — not just the aggregate setFailed count.
+      const errorLines = allOutput
+        .split('\n')
+        .filter((line) => line.startsWith('::error::'));
+      expect(errorLines).toHaveLength(2);
+      expect(allOutput).toContain('::error::aaa1111 fix(deps): bump dep');
+      expect(allOutput).toContain('::error::bbb2222 fix: another');
+      expect(allOutput).toContain(
+        "body's lines must not be longer than 200 characters",
+      );
+    })();
+  });
 });
