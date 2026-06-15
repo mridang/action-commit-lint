@@ -284526,6 +284526,22 @@ async function run(ghCtx = new contextExports.Context(), commitFetcherFactory = 
                     const linter = new Linter(commitsToLint, result.filepath, helpUrl, workingDirectory);
                     const result1 = await linter.lint();
                     await result1.format(new DefaultFormatter());
+                    // Surface the per-commit reason in the log (and as annotations),
+                    // not just the aggregate count emitted by setFailed below. The
+                    // detailed table is already written to the job summary, but that
+                    // lives on a separate tab; emitting one line per failing commit
+                    // here puts the reason where the log is actually read. GitHub
+                    // renders at most ~10 annotations of each level per step, but the
+                    // remaining lines still appear in the log output.
+                    for (const item of result1.items) {
+                        const head = item.input.split('\n')[0].trim();
+                        for (const e of item.errors) {
+                            coreExports.error(`${item.hash} ${head} — ${e.message}`);
+                        }
+                        for (const w of item.warnings) {
+                            coreExports.warning(`${item.hash} ${head} — ${w.message}`);
+                        }
+                    }
                     if (result1.hasErrors) {
                         if (failOnErrs) {
                             setFailed(`Found ${result1.errorCommitsCount} commit message${result1.errorCommitsCount === 1 ? '' : 's'} with errors`);
