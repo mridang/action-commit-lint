@@ -1,8 +1,8 @@
 export default {
   entry: ['src/main.ts', 'src/load.patch.ts'],
-  ignore: ['knip.config.ts'],
   ignoreDependencies: [
     /^@semantic-release\//,
+    'semantic-release-major-tag',
     /^@commitlint\/config-conventional$/,
   ],
 };

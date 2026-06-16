@@ -72,7 +72,7 @@ inputs:
       list so the action re-runs after a contributor fixes a bad title
       in the GitHub UI.
     required: false
-    default: 'commits'
+    default: commits
 
 runs:
   using: node24
