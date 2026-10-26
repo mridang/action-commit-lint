@@ -15,10 +15,12 @@ import type { ICommitFetcher } from './types.js';
 
 import { Linter } from './linter/index.js';
 import { createLoaders } from './loaders.js';
-import { Context } from '@actions/github/lib/context.js';
+import { context } from '@actions/github';
 import getCommitFetcher from './fetchers/index.js';
 import DefaultFormatter from './linter/formatter.js';
 import path from 'node:path';
+
+const Context = context.constructor as new () => typeof context;
 import type { CommitToLint } from './types.js';
 import {
   getLintStrategy as makeLintStrategy,
