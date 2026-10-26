@@ -74,7 +74,7 @@
     "axios": "^1.9.0",
     "eslint": "^9.39.4",
     "jest": "^30.0.3",
-    "jest-junit": "^16.0.0",
+    "jest-junit": "^17.0.0",
     "jsonwebtoken": "^9.0.2",
     "knip": "^6.17.1",
     "nock": "^14.0.5",
