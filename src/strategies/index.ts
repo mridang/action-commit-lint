@@ -1,4 +1,6 @@
-import type { WebhookPayload } from '@actions/github/lib/interfaces.js';
+import type { context } from '@actions/github';
+
+type WebhookPayload = typeof context.payload;
 import type { CommitToLint } from '../types.js';
 import { CommitsStrategy } from './commits.js';
 import { PrTitleStrategy } from './pr-title.js';

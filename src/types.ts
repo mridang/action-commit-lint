@@ -6,7 +6,7 @@ import type {
   ParserPreset,
   UserPromptConfig,
 } from '@commitlint/types';
-import type { GitHub } from '@actions/github/lib/utils.js';
+import type { GitHub } from '@actions/github/lib/utils';
 import type {
   PushEvent,
   MergeGroupEvent,

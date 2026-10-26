@@ -41,8 +41,8 @@
   "homepage": "https://github.com/mridang/action-commit-lint",
   "bugs": "https://github.com/mridang/action-commit-lint/issues",
   "dependencies": {
-    "@actions/core": "^1.11.1",
-    "@actions/github": "^6.0.1",
+    "@actions/core": "^3.0.1",
+    "@actions/github": "^9.1.1",
     "@commitlint/lint": "^19.8.1",
     "@commitlint/load": "^19.8.1",
     "@octokit/webhooks-types": "^7.6.1",
