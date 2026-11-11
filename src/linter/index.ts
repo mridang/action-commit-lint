@@ -98,7 +98,6 @@ export class Linter {
     this.projectBase = projectBase;
   }
 
-  /* eslint-disable jsdoc/check-tag-names -- jsdoc/check-tag-names does not recognise @rejects, which jsdoc/require-rejects requires */
 
   /**
    * Loads the effective commitlint configuration from the specified path.
@@ -136,7 +135,6 @@ export class Linter {
       );
     }
   }
-  /* eslint-enable jsdoc/check-tag-names -- closes the @rejects exemption above */
 
   /**
    * Executes the end-to-end linting process. This method first loads the

@@ -25,7 +25,6 @@ interface CommitToLint {
  * than a specific event payload from a provider like GitHub.
  */
 export class GenericCommitFetcher implements ICommitFetcher<string> {
-  /* eslint-disable jsdoc/check-tag-names -- jsdoc/check-tag-names does not recognise @rejects, which jsdoc/require-rejects requires */
 
   /**
    * Fetches commits from the local git repository using `git log`.
@@ -82,5 +81,4 @@ export class GenericCommitFetcher implements ICommitFetcher<string> {
       throw new Error(detailedError);
     }
   }
-  /* eslint-enable jsdoc/check-tag-names -- closes the @rejects exemption above */
 }

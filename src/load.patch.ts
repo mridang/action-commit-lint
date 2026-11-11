@@ -20,7 +20,6 @@ const cwd = process.cwd();
 // eslint-disable-next-line n/no-unsupported-features/node-builtins -- the action runs on Node 24 (action.yml), where import.meta.dirname is supported
 const rootDir = import.meta.dirname;
 
-/* eslint-disable jsdoc/check-tag-names -- jsdoc/check-tag-names does not recognise @rejects, which jsdoc/require-rejects requires */
 
 /**
  * Loads a commitlint plugin by name and registers it in the given plugin
@@ -86,4 +85,3 @@ export default async function loadPlugin(
 
   return plugins;
 }
-/* eslint-enable jsdoc/check-tag-names -- closes the @rejects exemption above */

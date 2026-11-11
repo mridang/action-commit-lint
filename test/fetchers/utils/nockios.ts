@@ -201,7 +201,6 @@ function getUrl(input?: UrlLike): string | undefined {
   return input?.href || input?.url || undefined;
 }
 
-/* eslint-disable jsdoc/check-tag-names -- jsdoc/check-tag-names does not recognise @rejects, which jsdoc/require-rejects requires */
 
 /**
  * Core function that implements the Fetch WebAPI using an Axios client.
@@ -273,7 +272,6 @@ const axiosFetchAdapter =
 
     return new Response(result.data, responseInit);
   };
-/* eslint-enable jsdoc/check-tag-names -- closes the @rejects exemption above */
 
 /**
  * Builds a Fetch WebAPI-compatible function backed by the provided Axios

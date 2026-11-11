@@ -68,7 +68,6 @@ async function pathExists(target: string): Promise<boolean> {
   }
 }
 
-/* eslint-disable jsdoc/check-tag-names -- jsdoc/check-tag-names does not recognise @rejects, which jsdoc/require-rejects requires */
 
 /**
  * Runs a shell command in a directory with its standard streams inherited
@@ -95,9 +94,7 @@ function runInheritedCommand(command: string, cwd: string): Promise<void> {
     });
   });
 }
-/* eslint-enable jsdoc/check-tag-names -- closes the @rejects exemption above */
 
-/* eslint-disable jsdoc/check-tag-names -- jsdoc/check-tag-names does not recognise @rejects, which jsdoc/require-rejects requires */
 
 /**
  * Creates a loader that extracts plugin dependencies from declarative configs
@@ -180,9 +177,7 @@ function declarativeLoader(loader: Loader): Loader {
     }
   };
 }
-/* eslint-enable jsdoc/check-tag-names -- closes the @rejects exemption above */
 
-/* eslint-disable jsdoc/check-tag-names -- jsdoc/check-tag-names does not recognise @rejects, which jsdoc/require-rejects requires */
 
 /**
  * Creates a loader that runs `npm install` in the config file's directory.
@@ -229,7 +224,6 @@ function imperativeLoader(loader: Loader, allowForce: boolean): Loader {
     return config;
   };
 }
-/* eslint-enable jsdoc/check-tag-names -- closes the @rejects exemption above */
 
 /**
  * Creates the loaders object for cosmiconfig, configured with the

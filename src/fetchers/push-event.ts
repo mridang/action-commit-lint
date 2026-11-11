@@ -22,7 +22,6 @@ import { getOctokit } from '@actions/github';
  * event payload subset if available.
  */
 export class PushEventCommitFetcher implements ICommitFetcher<PushEventPayloadSubset> {
-  /* eslint-disable jsdoc/check-tag-names -- jsdoc/check-tag-names does not recognise @rejects, which jsdoc/require-rejects requires */
 
   /**
    * Fetches commits from a push event.
@@ -101,5 +100,4 @@ export class PushEventCommitFetcher implements ICommitFetcher<PushEventPayloadSu
     debugLog('No commits found for push event from API or payload.');
     return [];
   }
-  /* eslint-enable jsdoc/check-tag-names -- closes the @rejects exemption above */
 }

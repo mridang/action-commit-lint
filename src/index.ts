@@ -273,7 +273,6 @@ function reportOutcome(
   }
 }
 
-/* eslint-disable jsdoc/check-tag-names -- jsdoc/check-tag-names does not recognise @rejects, which jsdoc/require-rejects requires */
 
 /**
  * Lints the given commits with the configuration file, publishes the report
@@ -319,7 +318,6 @@ async function lintAndReport(
   reportOutcome(result1, failOnErrs, failOnWarns);
   endGroup();
 }
-/* eslint-enable jsdoc/check-tag-names -- closes the @rejects exemption above */
 
 /**
  * Checks that cosmiconfig found a usable, non-empty configuration file.
