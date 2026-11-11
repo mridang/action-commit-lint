@@ -289,6 +289,11 @@ describe('Commitlint Action Integration Tests', () => {
         );
       }
 
+      const commitsToLint: CommitToLint[] = params.commits.map((commit) => ({
+        hash: commit.sha,
+        message: commit.message,
+      }));
+
       const action = () =>
         runAction(
           {
@@ -313,11 +318,7 @@ describe('Commitlint Action Integration Tests', () => {
                     'fetchCommits was called but the test asserted it must not be',
                   );
                 }
-                // eslint-disable-next-line sonarjs/no-nested-functions -- the fetcher stub is defined inline per test case on purpose
-                return params.commits.map((commit) => ({
-                  hash: commit.sha,
-                  message: commit.message,
-                }));
+                return commitsToLint;
               },
             };
           },

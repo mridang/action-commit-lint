@@ -40,8 +40,13 @@ async function replaceAllAsync(code, pattern, replacer) {
 
 const patched = path.resolve('src/load.patch.ts');
 
-const inlineHbsPlugin = {
-  name: 'inline-hbs',
+/**
+ * Rollup plugin that inlines the Handlebars templates a dependency reads at runtime. It is a class so that the
+ * plugin context Rollup passes as this to each hook is a legitimate use of this.
+ */
+class InlineHbsPlugin {
+  name = 'inline-hbs';
+
   async transform(code, id) {
     const readFilePattern =
       /readFile\s*\(\s*resolve\s*\(\s*__dirname\s*,\s*(['"`])(.+?\.hbs)\1\s*\)\s*,\s*['"`]utf-8['"`]\s*\)/g;
@@ -55,7 +60,6 @@ const inlineHbsPlugin = {
           const fileContent = await readFile(filePath, 'utf8');
           return JSON.stringify(fileContent);
         } catch (error) {
-          // eslint-disable-next-line unicorn/no-this-outside-of-class -- rollup binds the plugin context to this in transform hooks
           this.warn(
             `Failed to inline '${hbsPath}' for ${id}: ${error.message}`,
           );
@@ -72,11 +76,16 @@ const inlineHbsPlugin = {
     }
 
     return null;
-  },
-};
+  }
+}
 
-const inlinePackageJsonPlugin = {
-  name: 'inline-json',
+/**
+ * Rollup plugin that inlines the package.json files that dependencies require. It is a class so that the
+ * plugin context Rollup passes as this to each hook is a legitimate use of this.
+ */
+class InlinePackageJsonPlugin {
+  name = 'inline-json';
+
   async transform(code, id) {
     if (!id.includes('node_modules')) {
       return null;
@@ -93,7 +102,6 @@ const inlinePackageJsonPlugin = {
           const filePath = path.resolve(path.dirname(id), requiredPath);
           return await readFile(filePath, 'utf8');
         } catch (error) {
-          // eslint-disable-next-line unicorn/no-this-outside-of-class -- rollup binds the plugin context to this in transform hooks
           this.warn(
             `Failed to inline '${requiredPath}' for ${id}: ${error.message}`,
           );
@@ -106,8 +114,8 @@ const inlinePackageJsonPlugin = {
       code: newCode,
       map: null,
     };
-  },
-};
+  }
+}
 
 /**
  * Builds the Rollup configuration for the action bundle.
@@ -163,8 +171,8 @@ const createRollupConfig = (configOverrides = {}) => ({
         },
       ],
     }),
-    inlineHbsPlugin,
-    inlinePackageJsonPlugin,
+    new InlineHbsPlugin(),
+    new InlinePackageJsonPlugin(),
     resolve({
       exportConditions: ['node', 'default'],
       preferBuiltins: true,

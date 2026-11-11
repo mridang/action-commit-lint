@@ -17,8 +17,7 @@ import {
 import { info } from '@actions/core';
 
 const cwd = process.cwd();
-// eslint-disable-next-line n/no-unsupported-features/node-builtins -- the action runs on Node 24 (action.yml), where import.meta.dirname is supported
-const rootDir = import.meta.dirname;
+const rootDir = new URL('.', import.meta.url).pathname;
 
 /**
  * Loads a commitlint plugin by name and registers it in the given plugin
