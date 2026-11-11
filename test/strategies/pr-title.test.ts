@@ -1,3 +1,6 @@
+/**
+ * @file Tests for the PrTitleStrategy.
+ */
 import { describe, expect, jest, test } from '@jest/globals';
 import { PrTitleStrategy } from '../../src/strategies/pr-title.js';
 import type { CommitToLint } from '../../src/types.js';

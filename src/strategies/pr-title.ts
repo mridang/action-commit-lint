@@ -1,3 +1,7 @@
+/**
+ * @file Lint strategy that checks only the pull request title taken from the
+ * webhook payload.
+ */
 import type { CommitToLint } from '../types.js';
 import type { LintTargetStrategy, StrategyContext } from './index.js';
 
@@ -24,17 +28,24 @@ export class PrTitleStrategy implements LintTargetStrategy {
    * has no usable PR title. Never invokes `fetchCommits`, so the
    * underlying GitHub API call is skipped entirely when this strategy
    * is selected.
-   *
-   * @param ctx Read-only context whose `payload.pull_request` is
+   * @param ctx - Read-only context whose `payload.pull_request` is
    * inspected for `title`.
    * @returns A frozen list with one frozen item on PR events with a
    * non-empty title, otherwise a frozen empty list.
+   * @example
+   * ```ts
+   * const items = await new PrTitleStrategy().resolve({
+   *   eventName: 'pull_request',
+   *   payload: { pull_request: { title: 'feat: add parser', number: 7 } },
+   * });
+   * // items[0].hash === 'pr-7-title'
+   * ```
    */
   public async resolve(
     ctx: StrategyContext,
   ): Promise<ReadonlyArray<CommitToLint>> {
     const pr = ctx.payload.pull_request;
-    if (pr === undefined || pr === null) {
+    if (!pr) {
       return Object.freeze<CommitToLint[]>([]);
     }
     const title: unknown = pr.title;

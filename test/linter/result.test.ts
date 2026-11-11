@@ -1,3 +1,6 @@
+/**
+ * @file Tests for the Results aggregate and its accessors.
+ */
 import { Results } from '../../src/linter/result.js';
 
 describe('Results', () => {

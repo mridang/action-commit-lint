@@ -1,3 +1,7 @@
+/**
+ * @file Aggregated result of linting a set of commits, with counts and the
+ * accessors used by the formatter and the action's exit logic.
+ */
 import { Formatter, SimplifiedLinterResult } from './index.js';
 
 /**
@@ -52,9 +56,16 @@ export class Results {
    * Constructs a new Results instance. It eagerly processes the provided
    * linting results to generate and store aggregate counts for errors and
    * warnings, making subsequent checks highly efficient.
-   *
-   * @param items An array of simplified results for each linted commit.
-   * @param helpUrl A URL for help and documentation to be used in formatting.
+   * @param items - An array of simplified results for each linted commit.
+   * @param helpUrl - A URL for help and documentation to be used in formatting.
+   * @example
+   * ```ts
+   * const results = new Results(
+   *   [{ hash: 'abc123', input: 'fix: a', errors: [], warnings: [], valid: true }],
+   *   'https://www.conventionalcommits.org/en/v1.0.0/',
+   * );
+   * console.log(results.checkedCount); // 1
+   * ```
    */
   constructor(items: readonly SimplifiedLinterResult[], helpUrl: string) {
     this.items = items;
@@ -86,7 +97,6 @@ export class Results {
 
   /**
    * Gets the total number of commits that were analyzed by the linter.
-   *
    * @returns The count of commits that were linted.
    */
   get checkedCount(): number {
@@ -96,7 +106,6 @@ export class Results {
   /**
    * Checks if any of the linted commits contain at least one error. This
    * getter relies on the pre-calculated error count for O(1) efficiency.
-   *
    * @returns `true` if there are one or more errors, otherwise `false`.
    */
   get hasErrors(): boolean {
@@ -106,7 +115,6 @@ export class Results {
   /**
    * Checks if the results contain only warnings. This means no errors exist,
    * but at least one warning is present across all commits.
-   *
    * @returns `true` if there are warnings but no errors, otherwise `false`.
    */
   get hasOnlyWarnings(): boolean {
@@ -117,9 +125,12 @@ export class Results {
    * Formats and outputs the results using a provided formatter object. This
    * method delegates the rendering logic, allowing for different output
    * strategies (e.g., to the console or a GitHub Actions Summary).
-   *
-   * @param formatter An object that implements the `Formatter` interface and
+   * @param formatter - An object that implements the `Formatter` interface and
    * is responsible for rendering the results.
+   * @example
+   * ```ts
+   * await results.format(new DefaultFormatter());
+   * ```
    */
   public async format(formatter: Formatter): Promise<void> {
     formatter.format(this);

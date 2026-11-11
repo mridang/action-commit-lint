@@ -1,12 +1,16 @@
+/**
+ * @file Tests for the Linter class and its configuration loading.
+ */
 // noinspection ES6PreferShortImport
 import { Linter } from '../../src/linter/index.js';
-import { writeFileSync } from 'node:fs';
-import { join as pathJoin } from 'node:path';
+import { writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { RuleConfigSeverity } from '@commitlint/types';
 import { stringify as stringifyYaml } from 'yaml';
 import { Results } from '../../src/linter/result.js';
 import { withTempDir } from '../helpers/with-temp-dir.js';
 
+// eslint-disable-next-line sonarjs/max-lines-per-function -- one describe block holds the linter's full rule matrix
 describe('Linter', () => {
   const comprehensiveConfig = {
     rules: {
@@ -17,23 +21,23 @@ describe('Linter', () => {
     },
   };
 
-  const createCommitlintrcJson = (
+  const createCommitlintrcJson = async (
     dir: string,
     configContent: object,
     filename: string,
   ) => {
-    const filePath = pathJoin(dir, filename);
-    writeFileSync(filePath, JSON.stringify(configContent, null, 2));
+    const filePath = path.join(dir, filename);
+    await writeFile(filePath, JSON.stringify(configContent, null, 2));
     return filePath;
   };
 
-  const createCommitlintrcYaml = (
+  const createCommitlintrcYaml = async (
     dir: string,
     configContent: object,
     filename: string = '.commitlintrc.yaml',
   ) => {
-    const filePath = pathJoin(dir, filename);
-    writeFileSync(filePath, stringifyYaml(configContent));
+    const filePath = path.join(dir, filename);
+    await writeFile(filePath, stringifyYaml(configContent));
     return filePath;
   };
 
@@ -61,7 +65,7 @@ describe('Linter', () => {
       it(
         'should load the config and lint valid commits successfully',
         withTempDir(async ({ tmp: projectDir }) => {
-          const specifiedConfigPath = createConfigFn(
+          const specifiedConfigPath = await createConfigFn(
             projectDir,
             comprehensiveConfig,
             filename,
@@ -101,7 +105,7 @@ describe('Linter', () => {
       it(
         'should identify errors for invalid commits',
         withTempDir(async ({ tmp: projectDir }) => {
-          const specifiedConfigPath = createConfigFn(
+          const specifiedConfigPath = await createConfigFn(
             projectDir,
             comprehensiveConfig,
             filename,
@@ -158,7 +162,7 @@ describe('Linter', () => {
       it(
         'should handle a commit with only warnings correctly',
         withTempDir(async ({ tmp: projectDir }) => {
-          const specifiedConfigPath = createConfigFn(
+          const specifiedConfigPath = await createConfigFn(
             projectDir,
             comprehensiveConfig,
             filename,
@@ -204,7 +208,7 @@ describe('Linter', () => {
   it(
     'should throw an error if a specified config file is not found',
     withTempDir(async ({ tmp: projectDir }) => {
-      const specifiedConfigPath = pathJoin(
+      const specifiedConfigPath = path.join(
         projectDir,
         'nonexistent.commitlintrc.json',
       );
@@ -219,7 +223,7 @@ describe('Linter', () => {
   it(
     'should return a valid Results object for an empty list of commits',
     withTempDir(async ({ tmp: projectDir }) => {
-      const configPath = createCommitlintrcJson(
+      const configPath = await createCommitlintrcJson(
         projectDir,
         comprehensiveConfig,
         '.commitlintrc.json',
@@ -259,7 +263,7 @@ describe('Linter', () => {
     it(
       'passes a scoped header with a compliant body',
       withTempDir(async ({ tmp: projectDir }) => {
-        const configPath = createCommitlintrcJson(
+        const configPath = await createCommitlintrcJson(
           projectDir,
           scopeConfig,
           '.commitlintrc.json',
@@ -280,7 +284,7 @@ describe('Linter', () => {
     it(
       'fails on an over-long body line whether or not a scope is present',
       withTempDir(async ({ tmp: projectDir }) => {
-        const configPath = createCommitlintrcJson(
+        const configPath = await createCommitlintrcJson(
           projectDir,
           scopeConfig,
           '.commitlintrc.json',

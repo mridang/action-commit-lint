@@ -1,6 +1,9 @@
-/* eslint-disable */
-import { existsSync as fsExistsSync } from 'node:fs';
-import { debug, info } from '@actions/core';
+/**
+ * @file Linter that loads the commitlint configuration and checks each commit
+ * message against its rules.
+ */
+import { access } from 'node:fs/promises';
+import { debug as debugLog, info } from '@actions/core';
 import lintLib from '@commitlint/lint';
 import loadConfig from '@commitlint/load';
 import type { LintOutcome, QualifiedRules } from '@commitlint/types';
@@ -26,7 +29,7 @@ export type SimplifiedLinterResult = {
 export interface Formatter {
   /**
    * Populates a Summary object with a formatted representation of the results.
-   * @param results The results object to format.
+   * @param results - The results object to format.
    */
   format(results: Results): void;
 }
@@ -64,16 +67,24 @@ export class Linter {
 
   /**
    * Constructs a new Linter instance.
-   *
-   * @param allCommits An array of commit objects, each containing a hash
+   * @param allCommits - An array of commit objects, each containing a hash
    * and a message string, that are to be processed.
-   * @param configPath An optional, explicit path to a commitlint
+   * @param configPath - An optional, explicit path to a commitlint
    * configuration file. If null, auto-detection will be used.
-   * @param helpUrl A custom URL to be displayed in formatted output,
+   * @param helpUrl - A custom URL to be displayed in formatted output,
    * overriding any helpUrl from the loaded configuration.
-   * @param projectBase The root path of the project. This is used as the
+   * @param projectBase - The root path of the project. This is used as the
    * current working directory for loading configurations and resolving
    * shareable presets (e.g., from `node_modules`).
+   * @example
+   * ```ts
+   * const linter = new Linter(
+   *   [{ hash: 'abc123', message: 'fix: handle empty input' }],
+   *   '/repo/commitlint.config.js',
+   *   '',
+   *   '/repo',
+   * );
+   * ```
    */
   constructor(
     allCommits: ReadonlyArray<CommitToLint>,
@@ -90,26 +101,33 @@ export class Linter {
   /**
    * Loads the effective commitlint configuration from the specified path.
    * A valid path to an existing configuration file must be provided.
-   *
    * @returns A promise that resolves to the loaded and parsed commitlint
    * configuration object.
    * @throws An error if `configPath` is not provided or if the file
    * does not exist at the specified path.
    * @private
+   * @rejects An error if `configPath` is not provided or if the file
+   * does not exist at the specified path.
+   * @example
+   * ```ts
+   * const config = await linter.loadEffectiveConfig();
+   * console.log(config.rules);
+   * ```
    */
   private async loadEffectiveConfig(): Promise<LoadedCommitlintConfig> {
     if (this.configPath) {
-      if (fsExistsSync(this.configPath)) {
-        info(`Loading commitlint configuration from: ${this.configPath}`);
-        return (await loadConfig(
-          {},
-          { cwd: this.projectBase, file: this.configPath },
-        )) as LoadedCommitlintConfig;
-      } else {
+      try {
+        await access(this.configPath);
+      } catch {
         throw new Error(
           `Specified configuration file was not found at: ${this.configPath}`,
         );
       }
+      info(`Loading commitlint configuration from: ${this.configPath}`);
+      return (await loadConfig(
+        {},
+        { cwd: this.projectBase, file: this.configPath },
+      )) as LoadedCommitlintConfig;
     } else {
       throw new Error(
         `No configuration path was provided. A path to a valid commitlint configuration file is required.`,
@@ -121,9 +139,13 @@ export class Linter {
    * Executes the end-to-end linting process. This method first loads the
    * configuration, then lints each provided commit message against the resolved
    * rules, and finally returns a structured `Results` object.
-   *
    * @returns A promise that resolves to a `Results` instance containing the
    * detailed outcome of the linting for all processed commits.
+   * @example
+   * ```ts
+   * const results = await linter.lint();
+   * console.log(results.hasErrors);
+   * ```
    */
   public async lint(): Promise<Results> {
     const loadedConfig = await this.loadEffectiveConfig();
@@ -131,7 +153,7 @@ export class Linter {
     const lintResults = await Promise.all(
       this.allCommits
         .map((commit) => {
-          debug(`Linting commit ${commit.hash} - "${commit.message}"`);
+          debugLog(`Linting commit ${commit.hash} - "${commit.message}"`);
           return commit;
         })
         .map(async (commit) => {
@@ -141,8 +163,7 @@ export class Linter {
             {
               parserOpts:
                 (loadedConfig.parserPreset?.parserOpts as
-                  | ActualParserOptions
-                  | undefined) ?? {},
+                  ActualParserOptions | undefined) ?? {},
               plugins: loadedConfig.plugins ?? {},
               ignores: loadedConfig.ignores ?? [],
               defaultIgnores: loadedConfig.defaultIgnores ?? true,

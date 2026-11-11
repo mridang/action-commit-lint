@@ -1,3 +1,6 @@
+/**
+ * @file Tests for the merge_group commit fetcher.
+ */
 import nock from 'nock';
 import { getOctokit } from '@actions/github';
 import axios from 'axios';
@@ -29,6 +32,13 @@ describe('MergeGroupCommitFetcher', () => {
    * Creates a type-compliant MergeGroupEventPayloadSubset.
    * If headSha and message are provided, a valid merge_group object is included.
    * Otherwise, merge_group will be undefined in the returned subset.
+   * @param headSha - The head commit SHA of the merge group, or `undefined`.
+   * @param message - The head commit message, or `undefined`.
+   * @returns The payload subset for the merge_group event.
+   * @example
+   * ```ts
+   * const subset = createTestMergeGroupPayloadSubset("abc123", "feat: add x");
+   * ```
    */
   const createTestMergeGroupPayloadSubset = (
     headSha?: string,
@@ -56,7 +66,7 @@ describe('MergeGroupCommitFetcher', () => {
         } as ActualMergeGroupPayload,
       };
     }
-    return { merge_group: undefined };
+    return {};
   };
 
   beforeEach(() => {
@@ -84,7 +94,7 @@ describe('MergeGroupCommitFetcher', () => {
         message: 'feat: Merge feature branch into main via merge queue',
       },
     ]);
-    expect(nock.pendingMocks().length).toBe(0);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should return an empty array if merge_group key is effectively missing in payload subset', async () => {
@@ -95,7 +105,7 @@ describe('MergeGroupCommitFetcher', () => {
       {},
     );
     expect(commits).toEqual([]);
-    expect(nock.pendingMocks().length).toBe(0);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should return an empty array if merge_group property is undefined in payload subset', async () => {
@@ -103,9 +113,9 @@ describe('MergeGroupCommitFetcher', () => {
       octokit,
       'test-owner',
       'test-repo',
-      createTestMergeGroupPayloadSubset(undefined, undefined),
+      createTestMergeGroupPayloadSubset(),
     );
     expect(commits).toEqual([]);
-    expect(nock.pendingMocks().length).toBe(0);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 });

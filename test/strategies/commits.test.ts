@@ -1,3 +1,6 @@
+/**
+ * @file Tests for the CommitsStrategy.
+ */
 import { describe, expect, jest, test } from '@jest/globals';
 import { CommitsStrategy } from '../../src/strategies/commits.js';
 import type { CommitToLint } from '../../src/types.js';

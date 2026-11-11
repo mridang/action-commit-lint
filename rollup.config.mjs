@@ -1,35 +1,72 @@
+/**
+ * @file Rollup build configuration that bundles the action into a single
+ * CommonJS file, inlining its templates and package metadata.
+ */
 import resolve from '@rollup/plugin-node-resolve';
 import alias from '@rollup/plugin-alias';
 import commonjs from '@rollup/plugin-commonjs';
-import { dirname, resolve as r, resolve as pathResolve } from 'node:path';
-import { readFileSync } from 'node:fs';
-import * as nodules from 'node:module';
+import path from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { builtinModules } from 'node:module';
 import json from '@rollup/plugin-json';
 import typescript from '@rollup/plugin-typescript';
 
-const NODE_BUILTINS = nodules.builtinModules.reduce(
-  (acc, name) => acc.concat([name, `node:${name}`]),
+const NODE_BUILTINS = builtinModules.reduce(
+  (acc, name) => [...acc, name, `node:${name}`],
   [],
 );
 
-const patched = pathResolve('src/load.patch.ts');
+/**
+ * Replaces every match of a global regex using an async replacer.
+ *
+ * @param {string} code Source text to rewrite.
+ * @param {RegExp} pattern Global pattern to match.
+ * @param {(...args: string[]) => Promise<string>} replacer Async replacer.
+ * @returns {Promise<string>} The rewritten text.
+ */
+async function replaceAllAsync(code, pattern, replacer) {
+  const matches = [...code.matchAll(pattern)];
+  const replacements = await Promise.all(
+    matches.map((found) => replacer(...found)),
+  );
+  let result = '';
+  let last = 0;
+  for (const [index, found] of matches.entries()) {
+    result += code.slice(last, found.index) + replacements[index];
+    last = found.index + found[0].length;
+  }
+  return result + code.slice(last);
+}
 
-const inlineHbsPlugin = {
-  name: 'inline-hbs',
-  transform(code, id) {
+const patched = path.resolve('src/load.patch.ts');
+
+/**
+ * Rollup plugin that inlines the Handlebars templates a dependency reads at runtime. It is a class so that the
+ * plugin context Rollup passes as this to each hook is a legitimate use of this.
+ */
+class InlineHbsPlugin {
+  name = 'inline-hbs';
+
+  async transform(code, id) {
     const readFilePattern =
       /readFile\s*\(\s*resolve\s*\(\s*__dirname\s*,\s*(['"`])(.+?\.hbs)\1\s*\)\s*,\s*['"`]utf-8['"`]\s*\)/g;
 
-    const newCode = code.replace(readFilePattern, (match, quote, hbsPath) => {
-      try {
-        const filePath = r(dirname(id), hbsPath);
-        const fileContent = readFileSync(filePath, 'utf-8');
-        return JSON.stringify(fileContent);
-      } catch (e) {
-        this.warn(`Failed to inline '${hbsPath}' for ${id}: ${e.message}`);
-        return match;
-      }
-    });
+    const newCode = await replaceAllAsync(
+      code,
+      readFilePattern,
+      async (match, _quote, hbsPath) => {
+        try {
+          const filePath = path.resolve(path.dirname(id), hbsPath);
+          const fileContent = await readFile(filePath, 'utf8');
+          return JSON.stringify(fileContent);
+        } catch (error) {
+          this.warn(
+            `Failed to inline '${hbsPath}' for ${id}: ${error.message}`,
+          );
+          return match;
+        }
+      },
+    );
 
     if (newCode !== code) {
       return {
@@ -39,12 +76,17 @@ const inlineHbsPlugin = {
     }
 
     return null;
-  },
-};
+  }
+}
 
-const inlinePackageJsonPlugin = {
-  name: 'inline-json',
-  transform(code, id) {
+/**
+ * Rollup plugin that inlines the package.json files that dependencies require. It is a class so that the
+ * plugin context Rollup passes as this to each hook is a legitimate use of this.
+ */
+class InlinePackageJsonPlugin {
+  name = 'inline-json';
+
+  async transform(code, id) {
     if (!id.includes('node_modules')) {
       return null;
     }
@@ -52,15 +94,16 @@ const inlinePackageJsonPlugin = {
     const requirePattern =
       /require\((['"`])([-./\w]+?(?:package\.json|commitlint\.schema\.json))\1\)/g;
 
-    const newCode = code.replace(
+    const newCode = await replaceAllAsync(
+      code,
       requirePattern,
-      (match, quote, requiredPath) => {
+      async (match, _quote, requiredPath) => {
         try {
-          const filePath = r(dirname(id), requiredPath);
-          return readFileSync(filePath, 'utf-8');
-        } catch (e) {
+          const filePath = path.resolve(path.dirname(id), requiredPath);
+          return await readFile(filePath, 'utf8');
+        } catch (error) {
           this.warn(
-            `Failed to inline '${requiredPath}' for ${id}: ${e.message}`,
+            `Failed to inline '${requiredPath}' for ${id}: ${error.message}`,
           );
           return match;
         }
@@ -71,11 +114,21 @@ const inlinePackageJsonPlugin = {
       code: newCode,
       map: null,
     };
-  },
-};
+  }
+}
 
-// noinspection JSUnusedGlobalSymbols,SpellCheckingInspection
-export default (configOverrides = {}) => ({
+/**
+ * Builds the Rollup configuration for the action bundle.
+ * @param {object} [configOverrides] - Options merged into the plugin setup,
+ * such as overrides for the TypeScript plugin.
+ * @returns {object} The Rollup input and output configuration.
+ * @example
+ * ```js
+ * import createRollupConfig from './rollup.config.mjs';
+ * const config = createRollupConfig({ typescript: { declaration: false } });
+ * ```
+ */
+const createRollupConfig = (configOverrides = {}) => ({
   input: 'src/main.ts',
   output: {
     file: 'dist/main.cjs',
@@ -97,10 +150,12 @@ export default (configOverrides = {}) => ({
   onwarn(warning, warn) {
     switch (warning.code) {
       case 'CIRCULAR_DEPENDENCY':
-      case 'THIS_IS_UNDEFINED':
+      case 'THIS_IS_UNDEFINED': {
         return;
-      default:
+      }
+      default: {
         warn(warning);
+      }
     }
   },
   plugins: [
@@ -116,8 +171,8 @@ export default (configOverrides = {}) => ({
         },
       ],
     }),
-    inlineHbsPlugin,
-    inlinePackageJsonPlugin,
+    new InlineHbsPlugin(),
+    new InlinePackageJsonPlugin(),
     resolve({
       exportConditions: ['node', 'default'],
       preferBuiltins: true,
@@ -138,3 +193,5 @@ export default (configOverrides = {}) => ({
   ],
   external: NODE_BUILTINS,
 });
+
+export default createRollupConfig;

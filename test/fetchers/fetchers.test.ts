@@ -1,3 +1,6 @@
+/**
+ * @file Tests for the commit fetcher factory.
+ */
 import { describe, test, expect } from '@jest/globals';
 import getCommitFetcher from '../../src/fetchers/index.js';
 import { MergeGroupCommitFetcher } from '../../src/fetchers/merge-group.js';
@@ -38,7 +41,6 @@ describe('getCommitFetcher', () => {
         'should return null for an unsupported event like workflow_dispatch',
     },
     {
-      eventName: undefined,
       expectedClass: GenericCommitFetcher,
       description: 'should return null for an undefined event name',
     },

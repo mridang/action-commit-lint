@@ -1,8 +1,11 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+/**
+ * @file Tests for the cosmiconfig loaders that install configuration dependencies.
+ */
+import { access, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { cosmiconfig } from 'cosmiconfig';
 import { createLoaders } from '../src/loaders.js';
-import * as YAML from 'yaml';
+import { stringify as yamlStringify } from 'yaml';
 import { withTempDir } from './helpers/with-temp-dir.js';
 
 const baseConfig = {
@@ -15,9 +18,9 @@ const baseConfig = {
 
 it.each([
   ['.releaserc.json', true, JSON.stringify(baseConfig, null, 2)],
-  ['.releaserc.yaml', true, YAML.stringify(baseConfig)],
-  ['.releaserc.yml', true, YAML.stringify(baseConfig)],
-  ['.releaserc', true, YAML.stringify(baseConfig)],
+  ['.releaserc.yaml', true, yamlStringify(baseConfig)],
+  ['.releaserc.yml', true, yamlStringify(baseConfig)],
+  ['.releaserc', true, yamlStringify(baseConfig)],
   ['release.config.js', false, `module.exports = {};`],
   ['release.config.cjs', false, `module.exports = {};`],
   ['release.config.mjs', false, `export default {};`],
@@ -26,12 +29,12 @@ it.each([
   'correctly handles %s config with isDeclarative = %s',
   (filename, isDeclarative, contents) =>
     withTempDir(async ({ tmp }) => {
-      const filepath = join(tmp, filename);
-      writeFileSync(filepath, contents);
+      const filepath = path.join(tmp, filename);
+      await writeFile(filepath, contents);
 
       if (!isDeclarative) {
-        writeFileSync(
-          join(tmp, 'package.json'),
+        await writeFile(
+          path.join(tmp, 'package.json'),
           JSON.stringify(
             {
               name: 'imperative',
@@ -55,20 +58,20 @@ it.each([
       const result = await explorer.search(tmp);
       expect(result?.filepath).toBe(filepath);
 
-      const pkgJsonPath = join(tmp, 'package.json');
-      const pkgLockPath = join(tmp, 'package-lock.json');
+      const pkgJsonPath = path.join(tmp, 'package.json');
+      const pkgLockPath = path.join(tmp, 'package-lock.json');
 
-      expect(existsSync(pkgJsonPath)).toBe(true);
-      expect(existsSync(pkgLockPath)).toBe(true);
+      await expect(access(pkgJsonPath)).resolves.toBeUndefined();
+      await expect(access(pkgLockPath)).resolves.toBeUndefined();
 
-      const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
+      const pkgJson = JSON.parse(await readFile(pkgJsonPath, 'utf8'));
       const deps = pkgJson.dependencies || pkgJson.devDependencies;
       expect(deps).toMatchObject({
         '@semantic-release/commit-analyzer': '*',
         '@mridang/semantic-release-peer-version': '*',
       });
 
-      const pkgLock = JSON.parse(readFileSync(pkgLockPath, 'utf8'));
+      const pkgLock = JSON.parse(await readFile(pkgLockPath, 'utf8'));
       expect(pkgLock.packages).toHaveProperty(
         'node_modules/@semantic-release/commit-analyzer',
       );
@@ -80,8 +83,8 @@ it.each([
 
 it('pins an unversioned @commitlint/* config to the bundled engine major', () =>
   withTempDir(async ({ tmp }) => {
-    const filepath = join(tmp, '.commitlintrc.json');
-    writeFileSync(
+    const filepath = path.join(tmp, '.commitlintrc.json');
+    await writeFile(
       filepath,
       JSON.stringify({ extends: ['@commitlint/config-conventional'] }, null, 2),
     );
@@ -94,7 +97,9 @@ it('pins an unversioned @commitlint/* config to the bundled engine major', () =>
     const result = await explorer.search(tmp);
     expect(result?.filepath).toBe(filepath);
 
-    const pkgJson = JSON.parse(readFileSync(join(tmp, 'package.json'), 'utf8'));
+    const pkgJson = JSON.parse(
+      await readFile(path.join(tmp, 'package.json'), 'utf8'),
+    );
     const deps = pkgJson.dependencies || pkgJson.devDependencies;
     // Must NOT be '*' (which resolves to config-conventional@20, ESM-only and
     // incompatible with the bundled v19 engine — breaks `feat!:` parsing, #37).

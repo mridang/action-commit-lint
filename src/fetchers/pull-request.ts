@@ -1,3 +1,7 @@
+/**
+ * @file Commit fetcher for GitHub `pull_request` events, which lists every
+ * commit of the pull request through the REST API.
+ */
 import type {
   CommitToLint,
   ICommitFetcher,
@@ -11,18 +15,25 @@ import { getOctokit } from '@actions/github';
  * Implements {@link ICommitFetcher} to retrieve commits associated with a
  * GitHub pull request event. It primarily uses the `pullNumber` argument.
  */
-export class PullRequestCommitFetcher
-  implements ICommitFetcher<PullRequestEventPayloadSubset>
-{
+export class PullRequestCommitFetcher implements ICommitFetcher<PullRequestEventPayloadSubset> {
   /**
    * Fetches all the commits for a given pull request.
-   *
    * @param token - The GitHub token for API authentication.
    * @param owner - The owner of the repository where the pull request exists.
    * @param repo - The name of the repository.
    * @param payload - A subset of the GitHub `PullRequestEvent` payload.
    * @returns A promise that resolves to an array of {@link CommitToLint}
    * objects.
+   * @example
+   * ```ts
+   * const fetcher = new PullRequestCommitFetcher();
+   * const commits = await fetcher.fetchCommits(
+   *   process.env.GITHUB_TOKEN ?? '',
+   *   'mridang',
+   *   'action-commit-lint',
+   *   { action: 'opened', number: 42 },
+   * );
+   * ```
    */
   public async fetchCommits(
     token: string | OctokitInstance,

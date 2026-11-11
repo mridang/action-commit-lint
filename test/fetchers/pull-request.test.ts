@@ -1,3 +1,6 @@
+/**
+ * @file Tests for the pull_request commit fetcher.
+ */
 import nock from 'nock';
 import { getOctokit } from '@actions/github';
 import axios from 'axios';
@@ -62,7 +65,7 @@ describe('PullRequestCommitFetcher', () => {
       { hash: 'sha123', message: 'feat: Implement feature X' },
       { hash: 'sha456', message: 'fix: Correct bug Y' },
     ]);
-    expect(nock.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should return an empty array if the API returns no commits', async () => {
@@ -83,7 +86,7 @@ describe('PullRequestCommitFetcher', () => {
     );
 
     expect(commits).toEqual([]);
-    expect(nock.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should return an empty array if pullNumber is not provided', async () => {
@@ -98,7 +101,7 @@ describe('PullRequestCommitFetcher', () => {
     );
 
     expect(commits).toEqual([]);
-    expect(nock.pendingMocks().length).toBe(0);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should throw an error if the GitHub API call fails', async () => {
@@ -115,7 +118,7 @@ describe('PullRequestCommitFetcher', () => {
       }),
     ).rejects.toThrow();
 
-    expect(nock.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should throw an error if API returns non-array data for commits', async () => {
@@ -132,6 +135,6 @@ describe('PullRequestCommitFetcher', () => {
       }),
     ).rejects.toThrow();
 
-    expect(nock.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 });

@@ -1,3 +1,7 @@
+/**
+ * @file Shared type definitions for commit fetchers, payload subsets and the
+ * loaded commitlint configuration.
+ */
 /* istanbul ignore file */
 import type {
   LintOptions,
@@ -66,14 +70,12 @@ export type PullRequestEventPayloadSubset = Pick<
 /**
  * Interface for commit fetching strategies. Each fetcher will implement an
  * execute method to retrieve commits based on the GitHub event context.
- *
  * @template TEventPayloadSubset - The expected subset type of the GitHub event
  * payload relevant to the specific fetcher implementation.
  */
 export interface ICommitFetcher<TEventPayloadSubset = unknown> {
   /**
    * Fetches the relevant commits to be linted based on the GitHub event.
-   *
    * @param token - The GitHub token for API authentication.
    * @param owner - The owner of the repository where the event occurred.
    * @param repo - The name of the repository.

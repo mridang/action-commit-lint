@@ -1,14 +1,50 @@
+/**
+ * @file Default formatter that writes the lint results to the GitHub Actions
+ * job summary.
+ */
 import { summary as summarizer } from '@actions/core';
 // @ts-expect-error since these are not exported
 import type { Summary, SummaryTableRow } from '@actions/core/lib/summary';
 import { Formatter } from './index.js';
 import { Results } from './result.js';
 
+const ICON_BASE_URL =
+  'https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res';
+
+/**
+ * Returns the status icon image tag for a commit, based on whether it has
+ * errors, only warnings, or neither.
+ * @param isError - Whether the commit has at least one error.
+ * @param isWarning - Whether the commit has warnings but no errors.
+ * @returns An HTML image tag pointing at the matching icon.
+ * @example
+ * ```ts
+ * const icon = statusIcon(false, true); // the warning icon
+ * ```
+ */
+function statusIcon(isError: boolean, isWarning: boolean): string {
+  if (isError) {
+    return `<img src="${ICON_BASE_URL}/cross.svg" width="18">`;
+  }
+  if (isWarning) {
+    return `<img src="${ICON_BASE_URL}/warn.svg" width="18">`;
+  }
+  return `<img src="${ICON_BASE_URL}/check.svg" width="18">`;
+}
+
 /**
  * The default formatter for presenting linting results in a readable
  * GitHub Actions Summary.
  */
 export default class DefaultFormatter implements Formatter {
+  /**
+   * Writes the complete lint report to the GitHub Actions job summary.
+   * @param results - The lint results to render.
+   * @example
+   * ```ts
+   * await new DefaultFormatter().format(results);
+   * ```
+   */
   public async format(results: Results): Promise<void> {
     const summary = summarizer;
     summary.addHeading('Commit Lint Report', 2);
@@ -18,6 +54,16 @@ export default class DefaultFormatter implements Formatter {
     await summary.write();
   }
 
+  /**
+   * Adds the one-paragraph overview of how many commits passed, warned or
+   * failed.
+   * @param results - The lint results to summarise.
+   * @param summary - The job summary to write into.
+   * @example
+   * ```ts
+   * this.formatSummary(results, summary);
+   * ```
+   */
   private formatSummary(results: Results, summary: Summary): void {
     const errorCommitsCount = results.errorCommitsCount;
     const warningOnlyCommitsCount = results.items.filter(
@@ -48,6 +94,16 @@ export default class DefaultFormatter implements Formatter {
     summary.addRaw(summaryLines).addEOL().addBreak().addBreak();
   }
 
+  /**
+   * Adds the per-commit table with status, hash, message and first note.
+   * Writes nothing when there are no results.
+   * @param results - The lint results to tabulate.
+   * @param summary - The job summary to write into.
+   * @example
+   * ```ts
+   * this.formatTable(results, summary);
+   * ```
+   */
   private formatTable(results: Results, summary: Summary): void {
     if (results.checkedCount === 0) {
       return;
@@ -65,18 +121,11 @@ export default class DefaultFormatter implements Formatter {
       const isWarning = !isError && item.warnings.length > 0;
 
       // noinspection HtmlRequiredAltAttribute
-      const status = isError
-        ? '<img src="https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res/cross.svg" width="18">'
-        : isWarning
-          ? '<img src="https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res/warn.svg" width="18">'
-          : '<img src="https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res/check.svg" width="18">';
-      const note = isError
-        ? item.errors[0].message
-        : isWarning
-          ? item.warnings[0].message
-          : '';
+      const status = statusIcon(isError, isWarning);
+      const notes = isError ? item.errors : item.warnings;
+      const note = notes.length > 0 ? notes[0].message : '';
       const sha = `<code>${item.hash}</code>`;
-      const message = `<code>${item.input.split('\n')[0].trim()}</code>`;
+      const message = `<code>${item.input.split('\n', 1)[0].trim()}</code>`;
 
       return [status, sha, message, note];
     });
@@ -84,6 +133,16 @@ export default class DefaultFormatter implements Formatter {
     summary.addTable([header, ...rows]);
   }
 
+  /**
+   * Adds the separator, the help link to the Conventional Commits
+   * specification and a tip on fixing commits locally.
+   * @param results - The lint results, used for the help URL.
+   * @param summary - The job summary to write into.
+   * @example
+   * ```ts
+   * this.formatFooter(results, summary);
+   * ```
+   */
   private formatFooter(results: Results, summary: Summary): void {
     const helpUrl =
       results.helpUrl || 'https://www.conventionalcommits.org/en/v1.0.0/';

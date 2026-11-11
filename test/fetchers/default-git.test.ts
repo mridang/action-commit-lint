@@ -1,3 +1,6 @@
+/**
+ * @file Tests that the generic git fetcher lists commits from the current repository.
+ */
 import { GenericCommitFetcher } from '../../src/fetchers/default-git.js';
 
 describe('GenericCommitFetcher (real git repo)', () => {

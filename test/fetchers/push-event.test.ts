@@ -1,3 +1,6 @@
+/**
+ * @file Tests for the push event commit fetcher.
+ */
 import nock from 'nock';
 import { getOctokit } from '@actions/github';
 import axios from 'axios';
@@ -97,7 +100,7 @@ describe('PushEventCommitFetcher', () => {
       { hash: 'commit1', message: 'Initial commit on new branch' },
       { hash: 'commit2', message: 'Second commit on new branch' },
     ]);
-    expect(nock.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should fetch commits using compareCommits for a subsequent push', async () => {
@@ -126,7 +129,7 @@ describe('PushEventCommitFetcher', () => {
       { hash: 'compareCommit1', message: 'Update A' },
       { hash: 'compareCommit2', message: 'Fix B' },
     ]);
-    expect(nock.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should return an empty array if compareCommits returns no commits', async () => {
@@ -147,7 +150,7 @@ describe('PushEventCommitFetcher', () => {
       },
     );
     expect(commits).toEqual([]);
-    expect(nock.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should throw error if compareCommits fails', async () => {
@@ -169,7 +172,7 @@ describe('PushEventCommitFetcher', () => {
         ],
       }),
     ).rejects.toThrow(/Failed to compare commits via API/);
-    expect(nock.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should use payload commits if before and after SHAs are identical', async () => {
@@ -191,7 +194,7 @@ describe('PushEventCommitFetcher', () => {
     expect(commits).toEqual([
       { hash: 'forcePushCommit', message: 'Force pushed commit' },
     ]);
-    expect(nock.pendingMocks().length).toBe(0);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 
   it('should return empty array if API conditions not met and no payload commits', async () => {
@@ -206,6 +209,6 @@ describe('PushEventCommitFetcher', () => {
       },
     );
     expect(commits).toEqual([]);
-    expect(nock.pendingMocks().length).toBe(0);
+    expect(nock.pendingMocks()).toHaveLength(0);
   });
 });

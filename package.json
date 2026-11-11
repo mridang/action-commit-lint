@@ -3,18 +3,26 @@
   "version": "1.0.7",
   "type": "module",
   "scripts": {
-    "prepack": "tsc",
     "build": "rollup --config=rollup.config.mjs",
-    "test": "jest --verbose --config=jest.config.mjs",
-    "test:watch": "npm run test -- --watch",
-    "test:debug": "jest --verbose --config=jest.config.mjs --detectOpenHandles",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "npx eslint .",
-    "lint:fix": "npx eslint . --fix"
+    "lint:fix": "npx eslint . --fix",
+    "prepack": "tsc",
+    "test": "jest --verbose --config=jest.config.mjs",
+    "test:debug": "jest --verbose --config=jest.config.mjs --detectOpenHandles",
+    "test:watch": "npm run test -- --watch"
   },
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "default": "./dist/main.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": true,
   "keywords": [
     "semver",
     "nodejs",
@@ -53,9 +61,9 @@
   "devDependencies": {
     "@commitlint/config-conventional": "^19.8.1",
     "@commitlint/types": "^19.8.1",
-    "@eslint/compat": "^2.1.0",
+    "@eslint/compat": "^2.1.1",
     "@jest/globals": "^29.7.0",
-    "@mridang/eslint-defaults": "^1.6.3",
+    "@mridang/eslint-defaults": "^2.1.0",
     "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-commonjs": "^28.0.3",
     "@rollup/plugin-json": "^6.1.0",
@@ -72,19 +80,19 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.18.12",
     "axios": "^1.9.0",
-    "eslint": "^9.39.4",
+    "eslint": "^9.39.5",
     "jest": "^30.0.3",
     "jest-junit": "^17.0.0",
     "jsonwebtoken": "^9.0.2",
     "knip": "^6.17.1",
     "nock": "^14.0.5",
-    "prettier": "^3.1.1",
+    "prettier": "^3.9.10",
     "rollup": "^4.42.0",
     "semantic-release": "^25.0.1",
     "semantic-release-major-tag": "^0.3.2",
-    "ts-jest": "^29.4.0",
+    "ts-jest": "^29.4.15",
     "tslib": "^2.8.1",
-    "typescript": "^5.9.3",
+    "typescript": "~6.0.3",
     "undici": "^7.10.0",
     "yaml": "^2.8.0"
   },
@@ -93,5 +101,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "overrides": {
+    "@eslint/core": "1.2.1"
   }
 }

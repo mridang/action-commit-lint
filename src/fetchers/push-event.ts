@@ -1,4 +1,7 @@
-/* eslint-disable testing-library/no-debugging-utils */
+/**
+ * @file Commit fetcher for GitHub `push` events, which compares the pushed
+ * range through the REST API or falls back to the commits in the payload.
+ */
 import type {
   CommitToLint,
   ICommitFetcher,
@@ -6,7 +9,7 @@ import type {
   PushEventPayloadSubset,
   OctokitInstance,
 } from '../types.js';
-import { debug, error as coreError } from '@actions/core';
+import { debug as debugLog, error as coreError } from '@actions/core';
 import { getOctokit } from '@actions/github';
 
 /**
@@ -18,9 +21,7 @@ import { getOctokit } from '@actions/github';
  * force push to the same ref), it will use the `commits` array from the
  * event payload subset if available.
  */
-export class PushEventCommitFetcher
-  implements ICommitFetcher<PushEventPayloadSubset>
-{
+export class PushEventCommitFetcher implements ICommitFetcher<PushEventPayloadSubset> {
   /**
    * Fetches commits from a push event.
    *
@@ -29,7 +30,6 @@ export class PushEventCommitFetcher
    * is attempted and fails, an error will be thrown.
    * If the API call is not applicable, it will use the `commits` array from
    * the `eventPayloadSubset`.
-   *
    * @param token - The GitHub token for API authentication.
    * @param owner - The owner of the repository.
    * @param repo - The name of the repository.
@@ -38,6 +38,17 @@ export class PushEventCommitFetcher
    * @returns A promise that resolves to an array of {@link CommitToLint}
    * objects.
    * @throws If the `compareCommits` API call is attempted and fails.
+   * @rejects {Error} If the `compareCommits` API call is attempted and fails.
+   * @example
+   * ```ts
+   * const fetcher = new PushEventCommitFetcher();
+   * const commits = await fetcher.fetchCommits(
+   *   process.env.GITHUB_TOKEN ?? '',
+   *   'mridang',
+   *   'action-commit-lint',
+   *   { before: 'a1b2c3', after: 'd4e5f6', commits: [] },
+   * );
+   * ```
    */
   public async fetchCommits(
     token: string | OctokitInstance,
@@ -47,10 +58,10 @@ export class PushEventCommitFetcher
   ): Promise<CommitToLint[]> {
     const octokit = typeof token === 'string' ? getOctokit(token) : token;
     const { before, after, commits: payloadCommits } = eventPayloadSubset;
-    debug(`Push event: before SHA: ${before}, after SHA: ${after}`);
+    debugLog(`Push event: before SHA: ${before}, after SHA: ${after}`);
 
     if (before && after && before !== after) {
-      debug(
+      debugLog(
         `Attempting to fetch commits via compare API between ${before} and ${after}.`,
       );
       try {
@@ -61,7 +72,7 @@ export class PushEventCommitFetcher
           base: before,
           per_page: 100,
         });
-        debug(`API comparison found ${comparison.commits.length} commits.`);
+        debugLog(`API comparison found ${comparison.commits.length} commits.`);
         return comparison.commits.map((commit) => ({
           message: commit.commit.message,
           hash: commit.sha,
@@ -76,7 +87,7 @@ export class PushEventCommitFetcher
     }
 
     if (payloadCommits?.length) {
-      debug(
+      debugLog(
         `Using ${payloadCommits.length} commits from payload (API call not applicable or not attempted).`,
       );
       return (payloadCommits as ActualPushEventCommit[]).map((commit) => ({
@@ -85,7 +96,7 @@ export class PushEventCommitFetcher
       }));
     }
 
-    debug('No commits found for push event from API or payload.');
+    debugLog('No commits found for push event from API or payload.');
     return [];
   }
 }
