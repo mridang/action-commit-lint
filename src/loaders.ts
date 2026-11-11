@@ -120,8 +120,7 @@ function declarativeLoader(loader: Loader): Loader {
       const dependencies = ['plugins', 'extends']
         .flatMap((k) => {
           // The loaded config is untyped, so each key is read dynamically.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cosmiconfig returns an untyped config object
-          const v = (config as any)[k];
+          const v: unknown = (config as Record<string, unknown>)[k];
 
           if (typeof v === 'string') {
             return [v.trim()];
