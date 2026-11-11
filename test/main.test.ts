@@ -10,7 +10,7 @@ import { withEnvVars } from './helpers/with-env-vars.js';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import vm, { constants as VM } from 'node:vm';
-import { rollup } from 'rollup';
+import { rollup, type RollupOptions } from 'rollup';
 import jwt from 'jsonwebtoken';
 import createRollupConfig from '../rollup.config.mjs';
 
@@ -27,13 +27,18 @@ import createRollupConfig from '../rollup.config.mjs';
  * ```
  */
 export async function bundleToPath(): Promise<string> {
-  const testConfig = createRollupConfig({
+  const testConfig: RollupOptions = createRollupConfig({
     typescript: {
       outDir: null,
       declaration: false,
       sourceMap: true,
     },
   });
+
+  const { output } = testConfig;
+  if (!output || Array.isArray(output)) {
+    throw new Error('Expected a single rollup output configuration');
+  }
 
   const bundle = await rollup(testConfig);
   const tempDir = await mkdtemp(path.join(tmpdir(), 'test-bundle-'));
@@ -44,7 +49,7 @@ export async function bundleToPath(): Promise<string> {
     path.join(tempDir, 'tsconfig.json'),
   );
   try {
-    await bundle.write({ ...testConfig.output, file: outputFile });
+    await bundle.write({ ...output, file: outputFile });
   } finally {
     await bundle.close();
   }
