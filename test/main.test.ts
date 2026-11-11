@@ -8,11 +8,11 @@ import path from 'node:path';
 import { withTempDir } from './helpers/with-temp-dir.js';
 import { withEnvVars } from './helpers/with-env-vars.js';
 import { tmpdir } from 'node:os';
-import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import vm, { constants as VM } from 'node:vm';
 import { rollup } from 'rollup';
 import jwt from 'jsonwebtoken';
+import createRollupConfig from '../rollup.config.mjs';
 
 /**
  * Bundle the project using the local rollup.config.mjs and write the output
@@ -27,11 +27,6 @@ import jwt from 'jsonwebtoken';
  * ```
  */
 export async function bundleToPath(): Promise<string> {
-  // eslint-disable-next-line no-unsanitized/method -- the config path is a local file in this repository
-  const { default: createRollupConfig } = await import(
-    pathToFileURL(path.resolve('rollup.config.mjs')).href
-  );
-
   const testConfig = createRollupConfig({
     typescript: {
       outDir: null,
