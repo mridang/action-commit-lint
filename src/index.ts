@@ -373,10 +373,10 @@ export async function run(
 
       info(`Adding ${projectNodeModules} to Node.js module search path.`);
       // The bundled build runs as CommonJS, so the project's node_modules must be added to its module search path.
-      // eslint-disable-next-line unicorn/prefer-module -- module.paths is the only way to extend the CommonJS search path
-      module.paths.push(projectNodeModules);
-      // eslint-disable-next-line unicorn/prefer-module -- module.paths is the only way to extend the CommonJS search path
-      debugLog(`Module search paths now: ${module.paths.join(', ')}`);
+      // eslint-disable-next-line unicorn/prefer-module -- the bundle is CommonJS and only module.paths extends its own search path; Module.globalPaths is undocumented and process-wide, and NODE_PATH is read once at startup
+      const searchPaths = module.paths;
+      searchPaths.push(projectNodeModules);
+      debugLog(`Module search paths now: ${searchPaths.join(', ')}`);
     }
 
     const helpUrl = getHelpURL();
