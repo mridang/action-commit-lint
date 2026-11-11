@@ -114,8 +114,7 @@ async function runAction(
       },
       'dummy-secret',
     ),
-    // eslint-disable-next-line sonarjs/no-clear-text-protocols, unicorn/prefer-https -- test fixture for a local results endpoint
-    ACTIONS_RESULTS_URL: 'http://results.local:8080',
+    ACTIONS_RESULTS_URL: 'https://results.local:8080',
   };
 
   try {
