@@ -1,3 +1,6 @@
+/**
+ * @file Helpers that mock GitHub API calls with nock for the fetcher tests.
+ */
 import {
   AxiosHeaders,
   AxiosHeaderValue,
@@ -59,6 +62,11 @@ type CustomAxiosTransformer<Init extends RequestInit = RequestInit> = (
  * of `AxiosHeaders` (which has a `toJSON()` method) or a plain record.
  * @returns An array of [name, value] string pairs, compatible with
  * `HeadersInit`. Returns an empty array if `axiosHeadersInput` is undefined.
+ * @example
+ * ```ts
+ * const headers = createFetchHeaders({ 'content-type': 'text/plain', 'x-count': 2 });
+ * // [['content-type', 'text/plain'], ['x-count', '2']]
+ * ```
  */
 function createFetchHeaders(
   axiosHeadersInput?: RawAxiosResponseHeaders | AxiosResponseHeaders,
@@ -74,14 +82,12 @@ function createFetchHeaders(
 
   return Object.entries(normalizedHeaders).flatMap(
     ([name, value]): [string, string][] => {
-      if (value === null || value === undefined) {
+      if (isNil(value)) {
         return [];
       } else if (typeof value === 'string') {
         return [[name, value]];
       } else if (Array.isArray(value)) {
-        return value
-          .filter((v) => v !== null && v !== undefined)
-          .map((v) => [name, String(v)]);
+        return value.filter((v) => !isNil(v)).map((v) => [name, String(v)]);
       } else {
         return [[name, String(value)]];
       }
@@ -90,10 +96,27 @@ function createFetchHeaders(
 }
 
 /**
+ * Reports whether a header value is `null` or `undefined`.
+ * @param value - The header value to check.
+ * @returns `true` when the value is `null` or `undefined`, otherwise `false`.
+ * @example
+ * ```ts
+ * isNil(undefined); // true
+ * ```
+ */
+const isNil = (value: unknown): value is null | undefined => {
+  return value === null || value === undefined;
+};
+
+/**
  * Checks if the provided headers object is an instance of the global
  * `Headers` class.
  * @param headers - The headers object to check.
  * @returns True if the object is an instance of `Headers`, false otherwise.
+ * @example
+ * ```ts
+ * isGlobalHeaders(new Headers({ a: 'b' })); // true
+ * ```
  */
 const isGlobalHeaders = (headers: HeadersLike): headers is Headers => {
   return typeof Headers !== 'undefined' && headers instanceof Headers;
@@ -108,6 +131,10 @@ const isGlobalHeaders = (headers: HeadersLike): headers is Headers => {
  * @param headersInput - A Headers-like object. Defaults to an empty object.
  * @returns A plain object representing headers with string keys and string
  * values, suitable for an Axios request configuration.
+ * @example
+ * ```ts
+ * createAxiosHeaders([['X-Test', 'value']]); // { 'X-Test': 'value' }
+ * ```
  */
 function createAxiosHeaders(
   headersInput: HeadersLike = {},
@@ -137,12 +164,12 @@ function createAxiosHeaders(
 
     return Object.entries(processableRecord).reduce<Record<string, string>>(
       (acc, [name, value]) => {
-        if (value !== undefined && value !== null) {
+        if (!isNil(value)) {
           if (typeof value === 'string') {
             acc[name] = value;
           } else if (Array.isArray(value)) {
             acc[name] = value
-              .filter((v) => v !== null && v !== undefined)
+              .filter((v) => !isNil(v))
               .map(String)
               .join(', ');
           } else {
@@ -162,17 +189,19 @@ function createAxiosHeaders(
  * a string.
  * @returns The URL string, or undefined if it cannot be extracted from the
  * input.
+ * @example
+ * ```ts
+ * getUrl({ href: 'https://api.github.com' }); // 'https://api.github.com'
+ * ```
  */
 function getUrl(input?: UrlLike): string | undefined {
   if (typeof input === 'string') {
     return input;
-  } else if (input?.href) {
-    return input.href;
-  } else if (input?.url) {
-    return input.url;
   }
-  return undefined;
+  return input?.href || input?.url || undefined;
 }
+
+/* eslint-disable jsdoc/check-tag-names -- jsdoc/check-tag-names does not recognise @rejects, which jsdoc/require-rejects requires */
 
 /**
  * Core function that implements the Fetch WebAPI using an Axios client.
@@ -188,6 +217,12 @@ function getUrl(input?: UrlLike): string | undefined {
  * @returns An async function that mimics the `fetch` API signature, taking
  * global `RequestInfo` and an optional global `RequestInit` object,
  * and returning a `Promise<Response>` (global `Response`).
+ * @rejects If the Axios request fails with an error that has no response.
+ * @example
+ * ```ts
+ * const fetchLike = axiosFetchAdapter(axios.create());
+ * await fetchLike('https://api.github.com/repos');
+ * ```
  */
 const axiosFetchAdapter =
   <Init extends RequestInit = RequestInit>(
@@ -238,6 +273,7 @@ const axiosFetchAdapter =
 
     return new Response(result.data, responseInit);
   };
+/* eslint-enable jsdoc/check-tag-names -- closes the @rejects exemption above */
 
 /**
  * Builds a Fetch WebAPI-compatible function backed by the provided Axios
@@ -246,12 +282,17 @@ const axiosFetchAdapter =
  * Fetch API types).
  * @template Init - The type of the `init` object passed to fetch, extending
  * global `RequestInit`.
- * @param axiosInstance - An instance of Axios.
+ * @param axiosInstance - The Axios client used to send the requests.
  * @param transformer - An optional function to transform the
  * `AxiosRequestConfig` before the request is made.
  * @returns An async function that mimics the `fetch` API:
  * `(input: RequestInfo, init?: Init) => Promise<Response>` (using global
  * types).
+ * @example
+ * ```ts
+ * const fetchFn = buildAxiosFetch(axios.create({ baseURL: 'https://api.github.com' }));
+ * const response = await fetchFn('/repos/mridang/action-commit-lint');
+ * ```
  */
 export function buildAxiosFetch<Init extends RequestInit = RequestInit>(
   axiosInstance: AxiosInstance,

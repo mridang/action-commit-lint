@@ -1,3 +1,7 @@
+/**
+ * @file Commit fetcher for GitHub `pull_request` events, which lists every
+ * commit of the pull request through the REST API.
+ */
 import type {
   CommitToLint,
   ICommitFetcher,
@@ -20,6 +24,16 @@ export class PullRequestCommitFetcher implements ICommitFetcher<PullRequestEvent
    * @param payload - A subset of the GitHub `PullRequestEvent` payload.
    * @returns A promise that resolves to an array of {@link CommitToLint}
    * objects.
+   * @example
+   * ```ts
+   * const fetcher = new PullRequestCommitFetcher();
+   * const commits = await fetcher.fetchCommits(
+   *   process.env.GITHUB_TOKEN ?? '',
+   *   'mridang',
+   *   'action-commit-lint',
+   *   { action: 'opened', number: 42 },
+   * );
+   * ```
    */
   public async fetchCommits(
     token: string | OctokitInstance,

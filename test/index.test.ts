@@ -1,6 +1,9 @@
+/**
+ * @file Tests for the action's main run function.
+ */
 import { describe, expect, jest, test } from '@jest/globals';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 // noinspection ES6PreferShortImport
 import { run } from '../src/index.js';
 import type { CommitToLint, ICommitFetcher } from '../src/types.js';
@@ -18,9 +21,18 @@ import { tmpdir } from 'node:os';
  * @param extraEnv - A record of additional environment variables to set
  * during the action's execution, used to simulate workflow context
  * like `GITHUB_REF` or `GITHUB_EVENT_NAME`.
- * @param eventPayload
- * @param commitFetcherFactory
+ * @param eventPayload - The webhook payload written to `GITHUB_EVENT_PATH`.
+ * @param commitFetcherFactory - Returns the commit fetcher stub for the event.
  * @returns A promise that resolves with the action's result or void.
+ * @example
+ * ```ts
+ * const { summary } = await runAction(
+ *   { 'github-token': 'fake-token' },
+ *   { GITHUB_EVENT_NAME: 'push' },
+ *   {},
+ *   () => null,
+ * );
+ * ```
  */
 async function runAction(
   inputs: Record<string, string>,
@@ -28,13 +40,13 @@ async function runAction(
   eventPayload: unknown,
   commitFetcherFactory: (event: string) => ICommitFetcher | null,
 ): Promise<string | void> {
-  const summaryDir = mkdtempSync(join(tmpdir(), 'test-'));
-  const summaryPath = join(summaryDir, 'summary.md');
-  writeFileSync(summaryPath, '');
+  const summaryDir = await mkdtemp(path.join(tmpdir(), 'test-'));
+  const summaryPath = path.join(summaryDir, 'summary.md');
+  await writeFile(summaryPath, '');
 
-  const eventDir = mkdtempSync(join(tmpdir(), 'test-'));
-  const eventPath = join(eventDir, 'event.json');
-  writeFileSync(eventPath, JSON.stringify(eventPayload));
+  const eventDir = await mkdtemp(path.join(tmpdir(), 'test-'));
+  const eventPath = path.join(eventDir, 'event.json');
+  await writeFile(eventPath, JSON.stringify(eventPayload));
 
   const wrapped = withEnvVars(
     {
@@ -53,6 +65,7 @@ async function runAction(
   return await wrapped();
 }
 
+// eslint-disable-next-line sonarjs/max-lines-per-function -- one describe block holds the action's full integration matrix
 describe('Commitlint Action Integration Tests', () => {
   const testMatrix = [
     {
@@ -262,16 +275,16 @@ describe('Commitlint Action Integration Tests', () => {
 
   test.each(testMatrix)('$description', (params) => {
     return withTempDir(async ({ tmp }) => {
-      writeFileSync(
-        join(tmp, params.configFileName),
+      await writeFile(
+        path.join(tmp, params.configFileName),
         typeof params.configFileContent === 'string'
           ? params.configFileContent
           : JSON.stringify(params.configFileContent, null, 2),
       );
 
       if (params.createPkgJson) {
-        writeFileSync(
-          join(tmp, 'package.json'),
+        await writeFile(
+          path.join(tmp, 'package.json'),
           JSON.stringify({ name: 'test-project', private: true }),
         );
       }
@@ -300,6 +313,7 @@ describe('Commitlint Action Integration Tests', () => {
                     'fetchCommits was called but the test asserted it must not be',
                   );
                 }
+                // eslint-disable-next-line sonarjs/no-nested-functions -- the fetcher stub is defined inline per test case on purpose
                 return params.commits.map((commit) => ({
                   hash: commit.sha,
                   message: commit.message,
@@ -317,8 +331,8 @@ describe('Commitlint Action Integration Tests', () => {
 
   test('emits a workflow notice when lint-strategy=pr-title skips on a non-PR event', () => {
     return withTempDir(async ({ tmp }) => {
-      writeFileSync(
-        join(tmp, '.commitlintrc.json'),
+      await writeFile(
+        path.join(tmp, '.commitlintrc.json'),
         JSON.stringify({
           extends: ['@commitlint/config-conventional'],
           rules: { 'type-enum': [2, 'always', ['feat']] },
@@ -370,8 +384,8 @@ describe('Commitlint Action Integration Tests', () => {
 
   test('emits one error line per failing commit with the rule reason', () => {
     return withTempDir(async ({ tmp }) => {
-      writeFileSync(
-        join(tmp, '.commitlintrc.json'),
+      await writeFile(
+        path.join(tmp, '.commitlintrc.json'),
         JSON.stringify({
           extends: ['@commitlint/config-conventional'],
           rules: { 'body-max-line-length': [2, 'always', 200] },

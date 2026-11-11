@@ -1,3 +1,7 @@
+/**
+ * @file Lint strategy that checks the pull request title and every commit
+ * of the event together.
+ */
 import type { CommitToLint } from '../types.js';
 import type { LintTargetStrategy, StrategyContext } from './index.js';
 import { CommitsStrategy } from './commits.js';
@@ -29,6 +33,11 @@ export class BothStrategy implements LintTargetStrategy {
    * result. Defaults to a fresh {@link CommitsStrategy}.
    * @param prTitle - Strategy used to resolve the title half of the
    * result. Defaults to a fresh {@link PrTitleStrategy}.
+   * @example
+   * ```ts
+   * const strategy = new BothStrategy();
+   * const items = await strategy.resolve(ctx, fetchAndLimit);
+   * ```
    */
   constructor(
     commits: LintTargetStrategy = new CommitsStrategy(),
@@ -49,6 +58,13 @@ export class BothStrategy implements LintTargetStrategy {
    * @returns A frozen list shaped `[title, ...commits]`. On non-PR
    * events the title half yields nothing, so the result equals the
    * commits the fetcher returned.
+   * @example
+   * ```ts
+   * const items = await new BothStrategy().resolve(
+   *   { eventName: 'pull_request', payload },
+   *   async () => [{ message: 'fix: a', hash: 'abc123' }],
+   * );
+   * ```
    */
   public async resolve(
     ctx: StrategyContext,

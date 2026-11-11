@@ -1,3 +1,7 @@
+/**
+ * @file Lint strategy that checks every commit returned by the event's
+ * fetcher, which is the default behaviour.
+ */
 import type { CommitToLint } from '../types.js';
 import type { LintTargetStrategy, StrategyContext } from './index.js';
 
@@ -16,6 +20,12 @@ export class CommitsStrategy implements LintTargetStrategy {
    * @param fetchCommits - Callback that produces the commits for the
    * current event (already depth-limited by `run()`).
    * @returns The commits returned by `fetchCommits`, unchanged.
+   * @example
+   * ```ts
+   * const items = await new CommitsStrategy().resolve(ctx, async () => [
+   *   { message: 'feat: add parser', hash: 'abc123' },
+   * ]);
+   * ```
    */
   public async resolve(
     _ctx: StrategyContext,

@@ -1,3 +1,7 @@
+/**
+ * @file Semantic-release configuration that publishes the action, rebuilds the
+ * bundle and commits the release metadata.
+ */
 // noinspection JSUnusedGlobalSymbols
 export default {
   plugins: [

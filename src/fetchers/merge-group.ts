@@ -1,11 +1,14 @@
-/* eslint-disable testing-library/no-debugging-utils */
+/**
+ * @file Commit fetcher for GitHub `merge_group` events, which lints the head
+ * commit of the merge queue entry.
+ */
 import type {
   CommitToLint,
   ICommitFetcher,
   MergeGroupEventPayloadSubset,
   OctokitInstance,
 } from '../types.js';
-import { warning, debug } from '@actions/core';
+import { warning, debug as debugLog } from '@actions/core';
 
 /**
  * Implements {@link ICommitFetcher} to retrieve the head commit from a GitHub
@@ -23,6 +26,13 @@ export class MergeGroupCommitFetcher implements ICommitFetcher<MergeGroupEventPa
    * @returns A promise that resolves to an array containing a single
    * {@link CommitToLint} object for the head commit, or an empty array if the
    * required information is not present in the payload subset.
+   * @example
+   * ```ts
+   * const fetcher = new MergeGroupCommitFetcher();
+   * const commits = await fetcher.fetchCommits('', '', '', {
+   *   merge_group: { head_sha: 'abc123', head_commit: { message: 'feat: x' } },
+   * });
+   * ```
    */
   public async fetchCommits(
     _token: string | OctokitInstance,
@@ -30,14 +40,13 @@ export class MergeGroupCommitFetcher implements ICommitFetcher<MergeGroupEventPa
     _repo: string,
     eventPayloadSubset: MergeGroupEventPayloadSubset,
   ): Promise<CommitToLint[]> {
-    //const _octokit = typeof token === 'string' ? getOctokit(token) : token;
     const mergeGroup = eventPayloadSubset.merge_group;
-    debug(
+    debugLog(
       `Merge group event payload subset merge_group object: ${JSON.stringify(mergeGroup)}`,
     );
 
     if (mergeGroup?.head_commit?.message && mergeGroup?.head_sha) {
-      debug(`Found head commit for merge group: SHA ${mergeGroup.head_sha}`);
+      debugLog(`Found head commit for merge group: SHA ${mergeGroup.head_sha}`);
       return [
         {
           message: mergeGroup.head_commit.message,

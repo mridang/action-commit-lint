@@ -1,3 +1,7 @@
+/**
+ * @file Aggregated result of linting a set of commits, with counts and the
+ * accessors used by the formatter and the action's exit logic.
+ */
 import { Formatter, SimplifiedLinterResult } from './index.js';
 
 /**
@@ -54,6 +58,14 @@ export class Results {
    * warnings, making subsequent checks highly efficient.
    * @param items - An array of simplified results for each linted commit.
    * @param helpUrl - A URL for help and documentation to be used in formatting.
+   * @example
+   * ```ts
+   * const results = new Results(
+   *   [{ hash: 'abc123', input: 'fix: a', errors: [], warnings: [], valid: true }],
+   *   'https://www.conventionalcommits.org/en/v1.0.0/',
+   * );
+   * console.log(results.checkedCount); // 1
+   * ```
    */
   constructor(items: readonly SimplifiedLinterResult[], helpUrl: string) {
     this.items = items;
@@ -115,6 +127,10 @@ export class Results {
    * strategies (e.g., to the console or a GitHub Actions Summary).
    * @param formatter - An object that implements the `Formatter` interface and
    * is responsible for rendering the results.
+   * @example
+   * ```ts
+   * await results.format(new DefaultFormatter());
+   * ```
    */
   public async format(formatter: Formatter): Promise<void> {
     formatter.format(this);

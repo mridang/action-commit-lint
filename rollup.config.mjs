@@ -1,18 +1,22 @@
+/**
+ * @file Rollup build configuration that bundles the action into a single
+ * CommonJS file, inlining its templates and package metadata.
+ */
 import resolve from '@rollup/plugin-node-resolve';
 import alias from '@rollup/plugin-alias';
 import commonjs from '@rollup/plugin-commonjs';
-import { dirname, resolve as r, resolve as pathResolve } from 'node:path';
+import path from 'node:path';
 import { readFileSync } from 'node:fs';
-import * as nodules from 'node:module';
+import { builtinModules } from 'node:module';
 import json from '@rollup/plugin-json';
 import typescript from '@rollup/plugin-typescript';
 
-const NODE_BUILTINS = nodules.builtinModules.reduce(
+const NODE_BUILTINS = builtinModules.reduce(
   (acc, name) => [...acc, name, `node:${name}`],
   [],
 );
 
-const patched = pathResolve('src/load.patch.ts');
+const patched = path.resolve('src/load.patch.ts');
 
 const inlineHbsPlugin = {
   name: 'inline-hbs',
@@ -22,12 +26,14 @@ const inlineHbsPlugin = {
 
     const newCode = code.replaceAll(
       readFilePattern,
-      (match, quote, hbsPath) => {
+      (match, _quote, hbsPath) => {
         try {
-          const filePath = r(dirname(id), hbsPath);
-          const fileContent = readFileSync(filePath, 'utf-8');
+          const filePath = path.resolve(path.dirname(id), hbsPath);
+          // eslint-disable-next-line n/no-sync -- the bundler inlines templates synchronously inside replaceAll
+          const fileContent = readFileSync(filePath, 'utf8');
           return JSON.stringify(fileContent);
         } catch (error) {
+          // eslint-disable-next-line unicorn/no-this-outside-of-class -- rollup binds the plugin context to this in transform hooks
           this.warn(
             `Failed to inline '${hbsPath}' for ${id}: ${error.message}`,
           );
@@ -59,11 +65,13 @@ const inlinePackageJsonPlugin = {
 
     const newCode = code.replaceAll(
       requirePattern,
-      (match, quote, requiredPath) => {
+      (match, _quote, requiredPath) => {
         try {
-          const filePath = r(dirname(id), requiredPath);
-          return readFileSync(filePath, 'utf-8');
+          const filePath = path.resolve(path.dirname(id), requiredPath);
+          // eslint-disable-next-line n/no-sync -- the bundler inlines package metadata synchronously inside replaceAll
+          return readFileSync(filePath, 'utf8');
         } catch (error) {
+          // eslint-disable-next-line unicorn/no-this-outside-of-class -- rollup binds the plugin context to this in transform hooks
           this.warn(
             `Failed to inline '${requiredPath}' for ${id}: ${error.message}`,
           );
@@ -79,8 +87,18 @@ const inlinePackageJsonPlugin = {
   },
 };
 
-// noinspection JSUnusedGlobalSymbols,SpellCheckingInspection
-export default (configOverrides = {}) => ({
+/**
+ * Builds the Rollup configuration for the action bundle.
+ * @param {object} [configOverrides] - Options merged into the plugin setup,
+ * such as overrides for the TypeScript plugin.
+ * @returns {object} The Rollup input and output configuration.
+ * @example
+ * ```js
+ * import createRollupConfig from './rollup.config.mjs';
+ * const config = createRollupConfig({ typescript: { declaration: false } });
+ * ```
+ */
+const createRollupConfig = (configOverrides = {}) => ({
   input: 'src/main.ts',
   output: {
     file: 'dist/main.cjs',
@@ -145,3 +163,5 @@ export default (configOverrides = {}) => ({
   ],
   external: NODE_BUILTINS,
 });
+
+export default createRollupConfig;

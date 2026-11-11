@@ -1,6 +1,9 @@
+/**
+ * @file Tests that the bundled action runs end to end.
+ */
 import { describe, test } from '@jest/globals';
-import fs, { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import path, { join } from 'node:path';
+import { copyFile, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 // noinspection ES6PreferShortImport
 import { withTempDir } from './helpers/with-temp-dir.js';
 import { withEnvVars } from './helpers/with-env-vars.js';
@@ -10,34 +13,38 @@ import { createRequire } from 'node:module';
 import vm, { constants as VM } from 'node:vm';
 import { rollup } from 'rollup';
 import jwt from 'jsonwebtoken';
-import * as os from 'node:os';
 
 /**
  * Bundle the project using the local rollup.config.mjs and write the output
  * to "<outputDir>/.test-bundles/bundle-<timestamp>.cjs".
  * Returns the absolute path to the generated bundle so tests can load it
- * with `fs.readFileSync`, `vm.runInContext`, etc.
+ * with `readFile`, `vm.runInContext`, etc.
  * @returns Absolute path of the generated CommonJS bundle.
+ * @example
+ * ```ts
+ * const bundlePath = await bundleToPath();
+ * const source = await readFile(bundlePath, 'utf8');
+ * ```
  */
 export async function bundleToPath(): Promise<string> {
-  // eslint-disable-next-line no-unsanitized/method
+  // eslint-disable-next-line no-unsanitized/method -- the config path is a local file in this repository
   const { default: createRollupConfig } = await import(
     pathToFileURL(path.resolve('rollup.config.mjs')).href
   );
 
   const testConfig = createRollupConfig({
     typescript: {
-      outDir: undefined,
+      outDir: null,
       declaration: false,
       sourceMap: true,
     },
   });
 
   const bundle = await rollup(testConfig);
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-bundle-'));
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'test-bundle-'));
   const outputFile = path.join(tempDir, `bundle-${Date.now()}.cjs`);
 
-  fs.copyFileSync(
+  await copyFile(
     path.join(process.cwd(), 'tsconfig.json'),
     path.join(tempDir, 'tsconfig.json'),
   );
@@ -60,21 +67,29 @@ export async function bundleToPath(): Promise<string> {
  * @param extraEnv - A record of additional environment variables to set
  * during the action's execution, used to simulate workflow context
  * like `GITHUB_REF` or `GITHUB_EVENT_NAME`.
- * @param eventPayload
+ * @param eventPayload - The webhook payload written to `GITHUB_EVENT_PATH`.
  * @returns A promise that resolves with the action's result or void.
+ * @example
+ * ```ts
+ * const { summary } = await runAction(
+ *   { 'github-token': 'fake-token' },
+ *   { GITHUB_EVENT_NAME: 'push' },
+ *   { commits: [] },
+ * );
+ * ```
  */
 async function runAction(
   inputs: Record<string, string>,
   extraEnv: Record<string, string | undefined> = {},
   eventPayload: unknown = {},
 ): Promise<{ summary: string }> {
-  const summaryDir = mkdtempSync(join(tmpdir(), 'test-'));
-  const summaryPath = join(summaryDir, 'summary.md');
-  writeFileSync(summaryPath, '');
+  const summaryDir = await mkdtemp(path.join(tmpdir(), 'test-'));
+  const summaryPath = path.join(summaryDir, 'summary.md');
+  await writeFile(summaryPath, '');
 
-  const eventDir = mkdtempSync(join(tmpdir(), 'test-'));
-  const eventPath = join(eventDir, 'event.json');
-  writeFileSync(eventPath, JSON.stringify(eventPayload));
+  const eventDir = await mkdtemp(path.join(tmpdir(), 'test-'));
+  const eventPath = path.join(eventDir, 'event.json');
+  await writeFile(eventPath, JSON.stringify(eventPayload));
 
   const env = {
     ...extraEnv,
@@ -99,13 +114,14 @@ async function runAction(
       },
       'dummy-secret',
     ),
+    // eslint-disable-next-line sonarjs/no-clear-text-protocols, unicorn/prefer-https -- test fixture for a local results endpoint
     ACTIONS_RESULTS_URL: 'http://results.local:8080',
   };
 
   try {
     const wrappedRun = withEnvVars(env, async () => {
       const actionScript = await bundleToPath();
-      const script = fs.readFileSync(actionScript, 'utf8');
+      const script = await readFile(actionScript, 'utf8');
 
       const context = {
         ...process.env,
@@ -120,6 +136,7 @@ async function runAction(
         Object.getOwnPropertyDescriptors(globalThis),
       );
       vm.createContext(context);
+      // eslint-disable-next-line sonarjs/code-eval -- test fixture that runs the freshly bundled action in a vm context
       const result = vm.runInContext(script, context, {
         filename: actionScript,
         importModuleDynamically: VM.USE_MAIN_CONTEXT_DEFAULT_LOADER,
@@ -133,7 +150,7 @@ async function runAction(
     //
   }
 
-  const summaryContent = readFileSync(summaryPath, 'utf8');
+  const summaryContent = await readFile(summaryPath, 'utf8');
   return { summary: summaryContent };
 }
 
@@ -155,16 +172,16 @@ describe('Commitlint Action Integration Tests', () => {
 
   test.each(testMatrix)('$description', (params) => {
     return withTempDir(async ({ tmp }) => {
-      writeFileSync(
-        join(tmp, params.configFileName),
+      await writeFile(
+        path.join(tmp, params.configFileName),
         typeof params.configFileContent === 'string'
           ? params.configFileContent
           : JSON.stringify(params.configFileContent, null, 2),
       );
 
       if (params.createPkgJson) {
-        writeFileSync(
-          join(tmp, 'package.json'),
+        await writeFile(
+          path.join(tmp, 'package.json'),
           JSON.stringify({ name: 'test-project', private: true }),
         );
       }

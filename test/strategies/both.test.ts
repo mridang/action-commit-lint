@@ -1,3 +1,6 @@
+/**
+ * @file Tests for the BothStrategy composite.
+ */
 import { describe, expect, jest, test } from '@jest/globals';
 import { BothStrategy } from '../../src/strategies/both.js';
 import { CommitsStrategy } from '../../src/strategies/commits.js';

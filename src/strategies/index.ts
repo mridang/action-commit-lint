@@ -1,3 +1,7 @@
+/**
+ * @file Lint strategy contract, the strategy factory and the strategy
+ * implementations re-exported for callers.
+ */
 import type { context } from '@actions/github';
 
 type WebhookPayload = typeof context.payload;
@@ -61,6 +65,11 @@ export interface LintTargetStrategy {
  * @param name - The parsed `lint-strategy` input value.
  * @returns A ready-to-use strategy instance.
  * @throws {Error} If `name` is not a recognised strategy at runtime.
+ * @example
+ * ```ts
+ * const strategy = getLintStrategy('pr-title');
+ * const items = await strategy.resolve(ctx, fetchCommits);
+ * ```
  */
 export function getLintStrategy(name: LintStrategyName): LintTargetStrategy {
   switch (name) {

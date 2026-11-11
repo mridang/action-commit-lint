@@ -1,3 +1,7 @@
+/**
+ * @file Shared type definitions for commit fetchers, payload subsets and the
+ * loaded commitlint configuration.
+ */
 /* istanbul ignore file */
 import type {
   LintOptions,

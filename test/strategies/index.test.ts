@@ -1,3 +1,6 @@
+/**
+ * @file Tests for the strategy factory.
+ */
 import { describe, expect, test } from '@jest/globals';
 import {
   BothStrategy,
