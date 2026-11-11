@@ -24,8 +24,7 @@ export class PrTitleStrategy implements LintTargetStrategy {
    * has no usable PR title. Never invokes `fetchCommits`, so the
    * underlying GitHub API call is skipped entirely when this strategy
    * is selected.
-   *
-   * @param ctx Read-only context whose `payload.pull_request` is
+   * @param ctx - Read-only context whose `payload.pull_request` is
    * inspected for `title`.
    * @returns A frozen list with one frozen item on PR events with a
    * non-empty title, otherwise a frozen empty list.

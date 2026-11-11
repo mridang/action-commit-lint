@@ -13,10 +13,9 @@ import { tmpdir } from 'node:os';
  * controlled environment. It simulates the GitHub Actions runtime by
  * preparing environment variables and mocking necessary features like
  * Job Summaries.
- *
- * @param inputs A record of key-value pairs representing the action's
+ * @param inputs - A record of key-value pairs representing the action's
  * inputs, equivalent to the `with` block in a workflow YAML file.
- * @param extraEnv A record of additional environment variables to set
+ * @param extraEnv - A record of additional environment variables to set
  * during the action's execution, used to simulate workflow context
  * like `GITHUB_REF` or `GITHUB_EVENT_NAME`.
  * @param eventPayload
@@ -42,7 +41,7 @@ async function runAction(
       ...extraEnv,
       ...Object.fromEntries(
         Object.entries(inputs).map(([key, value]) => [
-          `INPUT_${key.replace(/ /g, '_').toUpperCase()}`,
+          `INPUT_${key.replaceAll(' ', '_').toUpperCase()}`,
           value,
         ]),
       ),
@@ -301,22 +300,18 @@ describe('Commitlint Action Integration Tests', () => {
                     'fetchCommits was called but the test asserted it must not be',
                   );
                 }
-                const transformedCommits = params.commits.map((commit) => ({
+                return params.commits.map((commit) => ({
                   hash: commit.sha,
                   message: commit.message,
                 }));
-
-                return Promise.resolve(transformedCommits);
               },
             };
           },
         );
 
-      if (params.expectToThrow) {
-        await expect(action()).rejects.toThrow(params.expectedErrorMessage);
-      } else {
-        await expect(action()).resolves.not.toThrow();
-      }
+      await (params.expectToThrow
+        ? expect(action()).rejects.toThrow(params.expectedErrorMessage)
+        : expect(action()).resolves.not.toThrow());
     })();
   });
 

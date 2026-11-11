@@ -1,6 +1,5 @@
 /* istanbul ignore file */
-import { pathToFileURL, fileURLToPath } from 'node:url';
-import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import resolveFrom from 'resolve-from';
 import {
   normalizePackageName,
@@ -14,7 +13,7 @@ import {
 import { info } from '@actions/core';
 
 const cwd = process.cwd();
-const rootDir = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = import.meta.dirname;
 
 // noinspection JSUnusedGlobalSymbols
 export default async function loadPlugin(
@@ -33,10 +32,10 @@ export default async function loadPlugin(
     let entry: string;
     try {
       entry = resolveFrom(cwd, longName);
-    } catch (err) {
+    } catch (error) {
       throw new MissingPluginError(
         pluginName,
-        err instanceof Error ? err.message : String(err),
+        error instanceof Error ? error.message : String(error),
         { pluginName: longName, commitlintPath: rootDir },
       );
     }

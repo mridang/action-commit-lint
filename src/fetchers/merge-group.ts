@@ -11,12 +11,9 @@ import { warning, debug } from '@actions/core';
  * Implements {@link ICommitFetcher} to retrieve the head commit from a GitHub
  * `merge_group` event. It expects a subset of the `MergeGroupEvent` payload.
  */
-export class MergeGroupCommitFetcher
-  implements ICommitFetcher<MergeGroupEventPayloadSubset>
-{
+export class MergeGroupCommitFetcher implements ICommitFetcher<MergeGroupEventPayloadSubset> {
   /**
    * Fetches the head commit from a `merge_group` event payload subset.
-   *
    * @param _token - The GitHub token for API authentication.
    * @param _owner - The owner of the repository.
    * @param _repo - The name of the repository.

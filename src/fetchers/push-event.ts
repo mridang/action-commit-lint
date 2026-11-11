@@ -18,9 +18,7 @@ import { getOctokit } from '@actions/github';
  * force push to the same ref), it will use the `commits` array from the
  * event payload subset if available.
  */
-export class PushEventCommitFetcher
-  implements ICommitFetcher<PushEventPayloadSubset>
-{
+export class PushEventCommitFetcher implements ICommitFetcher<PushEventPayloadSubset> {
   /**
    * Fetches commits from a push event.
    *
@@ -29,7 +27,6 @@ export class PushEventCommitFetcher
    * is attempted and fails, an error will be thrown.
    * If the API call is not applicable, it will use the `commits` array from
    * the `eventPayloadSubset`.
-   *
    * @param token - The GitHub token for API authentication.
    * @param owner - The owner of the repository.
    * @param repo - The name of the repository.

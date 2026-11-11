@@ -35,9 +35,8 @@ export interface StrategyContext {
 export interface LintTargetStrategy {
   /**
    * Produces the final list of items to lint for the current run.
-   *
-   * @param ctx Read-only context derived from the GitHub workflow run.
-   * @param fetchCommits Lazily-evaluated callback that returns the
+   * @param ctx - Read-only context derived from the GitHub workflow run.
+   * @param fetchCommits - Lazily-evaluated callback that returns the
    * commits produced by the event-specific fetcher (already trimmed by
    * `commit-depth` if set). Implementations may choose not to invoke
    * the callback to skip the underlying API call.
@@ -59,19 +58,21 @@ export interface LintTargetStrategy {
  * runtime as a defensive guard against unchecked casts and future
  * additions to {@link LintStrategyName} that forget to update this
  * switch.
- *
- * @param name The parsed `lint-strategy` input value.
+ * @param name - The parsed `lint-strategy` input value.
  * @returns A ready-to-use strategy instance.
  * @throws {Error} If `name` is not a recognised strategy at runtime.
  */
 export function getLintStrategy(name: LintStrategyName): LintTargetStrategy {
   switch (name) {
-    case 'commits':
+    case 'commits': {
       return new CommitsStrategy();
-    case 'pr-title':
+    }
+    case 'pr-title': {
       return new PrTitleStrategy();
-    case 'both':
+    }
+    case 'both': {
       return new BothStrategy();
+    }
     default: {
       const exhaustive: never = name;
       throw new Error(`Unknown lint strategy: ${exhaustive as string}`);
@@ -79,4 +80,6 @@ export function getLintStrategy(name: LintStrategyName): LintTargetStrategy {
   }
 }
 
-export { CommitsStrategy, PrTitleStrategy, BothStrategy };
+export { CommitsStrategy } from './commits.js';
+export { BothStrategy } from './both.js';
+export { PrTitleStrategy } from './pr-title.js';

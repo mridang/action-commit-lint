@@ -7,10 +7,9 @@ import { withEnvVars } from './helpers/with-env-vars.js';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
-import vm from 'node:vm';
+import vm, { constants as VM } from 'node:vm';
 import { rollup } from 'rollup';
 import jwt from 'jsonwebtoken';
-import { constants as VM } from 'vm';
 import * as os from 'node:os';
 
 /**
@@ -18,7 +17,6 @@ import * as os from 'node:os';
  * to "<outputDir>/.test-bundles/bundle-<timestamp>.cjs".
  * Returns the absolute path to the generated bundle so tests can load it
  * with `fs.readFileSync`, `vm.runInContext`, etc.
- *
  * @returns Absolute path of the generated CommonJS bundle.
  */
 export async function bundleToPath(): Promise<string> {
@@ -57,10 +55,9 @@ export async function bundleToPath(): Promise<string> {
  * controlled environment. It simulates the GitHub Actions runtime by
  * preparing environment variables and mocking necessary features like
  * Job Summaries.
- *
- * @param inputs A record of key-value pairs representing the action's
+ * @param inputs - A record of key-value pairs representing the action's
  * inputs, equivalent to the `with` block in a workflow YAML file.
- * @param extraEnv A record of additional environment variables to set
+ * @param extraEnv - A record of additional environment variables to set
  * during the action's execution, used to simulate workflow context
  * like `GITHUB_REF` or `GITHUB_EVENT_NAME`.
  * @param eventPayload
@@ -83,7 +80,7 @@ async function runAction(
     ...extraEnv,
     ...Object.fromEntries(
       Object.entries(inputs).map(([key, value]) => [
-        `INPUT_${key.replace(/ /g, '_').toUpperCase()}`,
+        `INPUT_${key.replaceAll(' ', '_').toUpperCase()}`,
         value,
       ]),
     ),

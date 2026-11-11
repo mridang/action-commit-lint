@@ -1,5 +1,5 @@
 /* eslint-disable testing-library/no-debugging-utils */
-import { execSync } from 'child_process';
+import { execSync } from 'node:child_process';
 import { debug, error as coreError } from '@actions/core';
 import { ICommitFetcher } from '../types.js';
 
@@ -25,7 +25,6 @@ export class GenericCommitFetcher implements ICommitFetcher<string> {
    * It executes `git log` with a specified format and parses the output.
    * The range of commits to fetch can be specified with the `commitRange`
    * parameter.
-   *
    * @returns A promise that resolves to an array of {@link CommitToLint}
    * objects.
    * @throws If the `git log` command fails (e.g., if not in a git repository).

@@ -25,10 +25,9 @@ export class BothStrategy implements LintTargetStrategy {
    * Constructs the composite strategy. Both sub-strategies have sensible
    * defaults; the parameters exist primarily so unit tests can inject
    * mocks and verify delegation.
-   *
-   * @param commits Strategy used to resolve the commit half of the
+   * @param commits - Strategy used to resolve the commit half of the
    * result. Defaults to a fresh {@link CommitsStrategy}.
-   * @param prTitle Strategy used to resolve the title half of the
+   * @param prTitle - Strategy used to resolve the title half of the
    * result. Defaults to a fresh {@link PrTitleStrategy}.
    */
   constructor(
@@ -44,9 +43,8 @@ export class BothStrategy implements LintTargetStrategy {
    * The two sub-strategies are invoked with the same `fetchCommits`
    * callback; in practice only the commit sub-strategy actually calls
    * it, so the underlying fetch happens at most once per `resolve()`.
-   *
-   * @param ctx Read-only context forwarded to both sub-strategies.
-   * @param fetchCommits Callback that produces the commits for the
+   * @param ctx - Read-only context forwarded to both sub-strategies.
+   * @param fetchCommits - Callback that produces the commits for the
    * current event (already depth-limited by `run()`).
    * @returns A frozen list shaped `[title, ...commits]`. On non-PR
    * events the title half yields nothing, so the result equals the

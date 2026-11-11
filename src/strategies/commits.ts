@@ -11,10 +11,9 @@ export class CommitsStrategy implements LintTargetStrategy {
    * Invokes the supplied fetcher callback and returns its result
    * verbatim. Ignores the strategy context entirely; the event-specific
    * fetcher is the sole source of items.
-   *
-   * @param _ctx Unused; present to satisfy the {@link LintTargetStrategy}
+   * @param _ctx - Unused; present to satisfy the {@link LintTargetStrategy}
    * contract.
-   * @param fetchCommits Callback that produces the commits for the
+   * @param fetchCommits - Callback that produces the commits for the
    * current event (already depth-limited by `run()`).
    * @returns The commits returned by `fetchCommits`, unchanged.
    */

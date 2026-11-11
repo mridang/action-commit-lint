@@ -34,7 +34,6 @@ function defaultVersionFor(name: string): string {
  * and generates a package.json file with versions if specified.
  *
  * Will throw if a package.json already exists in the directory.
- *
  * @param loader - The base loader to parse the configuration file.
  * @returns A loader that prepares a package.json for npm install.
  */
@@ -55,16 +54,14 @@ function declarativeLoader(loader: Loader): Loader {
           if (typeof v === 'string') {
             return [v.trim()];
           } else {
-            if (Array.isArray(v)) {
-              return v
-                .map((x) => {
-                  return Array.isArray(x) ? x[0] : x;
-                })
-                .filter((x): x is string => typeof x === 'string')
-                .map((x) => x.trim());
-            } else {
-              return [];
-            }
+            return Array.isArray(v)
+              ? v
+                  .map((x) => {
+                    return Array.isArray(x) ? x[0] : x;
+                  })
+                  .filter((x): x is string => typeof x === 'string')
+                  .map((x) => x.trim())
+              : [];
           }
         })
         .map((pkg) => {
@@ -77,11 +74,10 @@ function declarativeLoader(loader: Loader): Loader {
             at > 0 && entry.startsWith('@') ? entry.slice(0, at) : entry;
 
           if (!acc[name]) {
-            if (at > 0 && entry.startsWith('@')) {
-              acc[name] = entry.slice(at + 1);
-            } else {
-              acc[name] = defaultVersionFor(name);
-            }
+            acc[name] =
+              at > 0 && entry.startsWith('@')
+                ? entry.slice(at + 1)
+                : defaultVersionFor(name);
           }
 
           return acc;
@@ -111,7 +107,6 @@ function declarativeLoader(loader: Loader): Loader {
 /**
  * Creates a loader that runs `npm install` in the config file's directory.
  * If allowForce is true, it will use the --force flag.
- *
  * @param loader - The base loader to parse the configuration file.
  * @param allowForce - Whether to use `npm install --force`.
  * @returns A loader that installs dependencies using npm.
@@ -140,9 +135,9 @@ function imperativeLoader(loader: Loader, allowForce: boolean): Loader {
       })
         .split(/\r?\n/)
         .forEach((line) => debug(line));
-    } catch (err) {
-      if (err instanceof Error || typeof err === 'string') {
-        error(err);
+    } catch (error_) {
+      if (error_ instanceof Error || typeof error_ === 'string') {
+        error(error_);
       }
       throw new Error();
     } finally {
@@ -156,7 +151,6 @@ function imperativeLoader(loader: Loader, allowForce: boolean): Loader {
 /**
  * REFACTORED: Creates a loaders object for cosmiconfig, configured with the
  * allowForce flag.
- *
  * @param allowForce - If true, enables force-install and overwriting package.json.
  * @returns A cosmiconfig loaders object.
  */

@@ -8,7 +8,7 @@ import json from '@rollup/plugin-json';
 import typescript from '@rollup/plugin-typescript';
 
 const NODE_BUILTINS = nodules.builtinModules.reduce(
-  (acc, name) => acc.concat([name, `node:${name}`]),
+  (acc, name) => [...acc, name, `node:${name}`],
   [],
 );
 
@@ -20,16 +20,21 @@ const inlineHbsPlugin = {
     const readFilePattern =
       /readFile\s*\(\s*resolve\s*\(\s*__dirname\s*,\s*(['"`])(.+?\.hbs)\1\s*\)\s*,\s*['"`]utf-8['"`]\s*\)/g;
 
-    const newCode = code.replace(readFilePattern, (match, quote, hbsPath) => {
-      try {
-        const filePath = r(dirname(id), hbsPath);
-        const fileContent = readFileSync(filePath, 'utf-8');
-        return JSON.stringify(fileContent);
-      } catch (e) {
-        this.warn(`Failed to inline '${hbsPath}' for ${id}: ${e.message}`);
-        return match;
-      }
-    });
+    const newCode = code.replaceAll(
+      readFilePattern,
+      (match, quote, hbsPath) => {
+        try {
+          const filePath = r(dirname(id), hbsPath);
+          const fileContent = readFileSync(filePath, 'utf-8');
+          return JSON.stringify(fileContent);
+        } catch (error) {
+          this.warn(
+            `Failed to inline '${hbsPath}' for ${id}: ${error.message}`,
+          );
+          return match;
+        }
+      },
+    );
 
     if (newCode !== code) {
       return {
@@ -52,15 +57,15 @@ const inlinePackageJsonPlugin = {
     const requirePattern =
       /require\((['"`])([-./\w]+?(?:package\.json|commitlint\.schema\.json))\1\)/g;
 
-    const newCode = code.replace(
+    const newCode = code.replaceAll(
       requirePattern,
       (match, quote, requiredPath) => {
         try {
           const filePath = r(dirname(id), requiredPath);
           return readFileSync(filePath, 'utf-8');
-        } catch (e) {
+        } catch (error) {
           this.warn(
-            `Failed to inline '${requiredPath}' for ${id}: ${e.message}`,
+            `Failed to inline '${requiredPath}' for ${id}: ${error.message}`,
           );
           return match;
         }
@@ -97,10 +102,12 @@ export default (configOverrides = {}) => ({
   onwarn(warning, warn) {
     switch (warning.code) {
       case 'CIRCULAR_DEPENDENCY':
-      case 'THIS_IS_UNDEFINED':
+      case 'THIS_IS_UNDEFINED': {
         return;
-      default:
+      }
+      default: {
         warn(warning);
+      }
     }
   },
   plugins: [

@@ -67,16 +67,16 @@ export default class DefaultFormatter implements Formatter {
       // noinspection HtmlRequiredAltAttribute
       const status = isError
         ? '<img src="https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res/cross.svg" width="18">'
-        : isWarning
+        : (isWarning
           ? '<img src="https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res/warn.svg" width="18">'
-          : '<img src="https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res/check.svg" width="18">';
+          : '<img src="https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res/check.svg" width="18">');
       const note = isError
         ? item.errors[0].message
-        : isWarning
+        : (isWarning
           ? item.warnings[0].message
-          : '';
+          : '');
       const sha = `<code>${item.hash}</code>`;
-      const message = `<code>${item.input.split('\n')[0].trim()}</code>`;
+      const message = `<code>${item.input.split('\n', 1)[0].trim()}</code>`;
 
       return [status, sha, message, note];
     });

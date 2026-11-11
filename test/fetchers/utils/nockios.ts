@@ -37,7 +37,6 @@ type UrlLike = string | { href?: string; url?: string };
 /**
  * Type for a transformer function that can modify the AxiosRequestConfig
  * before the request is made.
- *
  * @template Init - The type of the `init` object passed to fetch, extending
  * global `RequestInit`.
  * @param config - The Axios request configuration derived from fetch arguments.
@@ -56,7 +55,6 @@ type CustomAxiosTransformer<Init extends RequestInit = RequestInit> = (
  * Headers constructor, from an Axios-style headers object. This function
  * handles different types of Axios header values, including arrays, and
  * converts all final header values to strings.
- *
  * @param axiosHeadersInput - An Axios headers object, which can be an instance
  * of `AxiosHeaders` (which has a `toJSON()` method) or a plain record.
  * @returns An array of [name, value] string pairs, compatible with
@@ -94,7 +92,6 @@ function createFetchHeaders(
 /**
  * Checks if the provided headers object is an instance of the global
  * `Headers` class.
- *
  * @param headers - The headers object to check.
  * @returns True if the object is an instance of `Headers`, false otherwise.
  */
@@ -108,7 +105,6 @@ const isGlobalHeaders = (headers: HeadersLike): headers is Headers => {
  * It normalizes header names and values to strings. The input `headers` can be
  * a global `Headers` instance, a string[][], or a record-like object which
  * might also be an `AxiosHeaders` instance.
- *
  * @param headersInput - A Headers-like object. Defaults to an empty object.
  * @returns A plain object representing headers with string keys and string
  * values, suitable for an Axios request configuration.
@@ -131,14 +127,13 @@ function createAxiosHeaders(
       AxiosHeaderValue | string | number | boolean | undefined | null
     >;
 
-    if (typeof (headersInput as AxiosHeaders).toJSON === 'function') {
-      processableRecord = (headersInput as AxiosHeaders).toJSON();
-    } else {
-      processableRecord = headersInput as Record<
-        string,
-        AxiosHeaderValue | string | number | boolean | undefined | null
-      >;
-    }
+    processableRecord =
+      typeof (headersInput as AxiosHeaders).toJSON === 'function'
+        ? (headersInput as AxiosHeaders).toJSON()
+        : (headersInput as Record<
+            string,
+            AxiosHeaderValue | string | number | boolean | undefined | null
+          >);
 
     return Object.entries(processableRecord).reduce<Record<string, string>>(
       (acc, [name, value]) => {
@@ -148,7 +143,7 @@ function createAxiosHeaders(
           } else if (Array.isArray(value)) {
             acc[name] = value
               .filter((v) => v !== null && v !== undefined)
-              .map((v) => String(v))
+              .map(String)
               .join(', ');
           } else {
             acc[name] = String(value);
@@ -163,7 +158,6 @@ function createAxiosHeaders(
 
 /**
  * Extracts a URL string from various URL-like input types.
- *
  * @param input - A URL-like object (supporting `href` or `url` properties) or
  * a string.
  * @returns The URL string, or undefined if it cannot be extracted from the
@@ -185,7 +179,6 @@ function getUrl(input?: UrlLike): string | undefined {
  * It constructs an Axios request from Fetch API arguments, makes the request,
  * and then transforms the Axios response back into a Fetch API `Response`
  * object (using global `Response`).
- *
  * @template Init - The type of the `init` object passed to fetch, extending
  * global `RequestInit`.
  * @param axiosInstance - An instance of Axios, configured as needed.
@@ -251,7 +244,6 @@ const axiosFetchAdapter =
  * instance. This allows using Axios's features (interceptors, transformers,
  * etc.) while providing a standard `fetch`-like interface (using global
  * Fetch API types).
- *
  * @template Init - The type of the `init` object passed to fetch, extending
  * global `RequestInit`.
  * @param axiosInstance - An instance of Axios.
