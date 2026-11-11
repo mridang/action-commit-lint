@@ -4,10 +4,13 @@
 import { describe, expect, jest, test } from '@jest/globals';
 import { PrTitleStrategy } from '../../src/strategies/pr-title.js';
 import type { CommitToLint } from '../../src/types.js';
-import type { StrategyContext } from '../../src/strategies/index.js';
+import type {
+  LintTargetStrategy,
+  StrategyContext,
+} from '../../src/strategies/index.js';
 
 describe('PrTitleStrategy', () => {
-  const strategy = new PrTitleStrategy();
+  const strategy: LintTargetStrategy = new PrTitleStrategy();
 
   const makeFetcher = () => {
     const fetchCommits = jest.fn<() => Promise<ReadonlyArray<CommitToLint>>>();

@@ -65,9 +65,25 @@ async function runAction(
   return await wrapped();
 }
 
+/**
+ * One row of the integration matrix.
+ */
+interface MatrixCase {
+  description: string;
+  configFileName: string;
+  configFileContent: string | object;
+  createPkgJson: boolean;
+  inputs: Record<string, string>;
+  event: { name: string; payload: object };
+  commits: { sha: string; message: string }[];
+  expectFetcherCalled?: boolean;
+  expectToThrow: boolean;
+  expectedErrorMessage?: string;
+}
+
 // eslint-disable-next-line sonarjs/max-lines-per-function -- one describe block holds the action's full integration matrix
 describe('Commitlint Action Integration Tests', () => {
-  const testMatrix = [
+  const testMatrix: MatrixCase[] = [
     {
       description: 'Declarative config, valid commit, should pass',
       configFileName: '.commitlintrc.json',
@@ -310,10 +326,7 @@ describe('Commitlint Action Integration Tests', () => {
           (): ICommitFetcher | null => {
             return {
               fetchCommits: async (): Promise<CommitToLint[]> => {
-                if (
-                  'expectFetcherCalled' in params &&
-                  params.expectFetcherCalled === false
-                ) {
+                if (params.expectFetcherCalled === false) {
                   throw new Error(
                     'fetchCommits was called but the test asserted it must not be',
                   );
