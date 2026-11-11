@@ -68,7 +68,6 @@ async function pathExists(target: string): Promise<boolean> {
   }
 }
 
-
 /**
  * Runs a shell command in a directory with its standard streams inherited
  * from the action, so the installer output appears in the job log.
@@ -94,7 +93,6 @@ function runInheritedCommand(command: string, cwd: string): Promise<void> {
     });
   });
 }
-
 
 /**
  * Creates a loader that extracts plugin dependencies from declarative configs
@@ -177,7 +175,6 @@ function declarativeLoader(loader: Loader): Loader {
     }
   };
 }
-
 
 /**
  * Creates a loader that runs `npm install` in the config file's directory.

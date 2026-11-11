@@ -98,7 +98,6 @@ export class Linter {
     this.projectBase = projectBase;
   }
 
-
   /**
    * Loads the effective commitlint configuration from the specified path.
    * A valid path to an existing configuration file must be provided.

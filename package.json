@@ -15,6 +15,14 @@
   },
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "default": "./dist/main.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": true,
   "keywords": [
     "semver",
     "nodejs",

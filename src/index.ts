@@ -273,7 +273,6 @@ function reportOutcome(
   }
 }
 
-
 /**
  * Lints the given commits with the configuration file, publishes the report
  * and reports the outcome inside a log group.
@@ -441,7 +440,7 @@ export async function run(
     if (error instanceof Error) {
       setFailed(error);
     } else {
-      setFailed(error as unknown as string);
+      setFailed(String(error));
     }
   }
 }

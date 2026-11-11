@@ -201,7 +201,6 @@ function getUrl(input?: UrlLike): string | undefined {
   return input?.href || input?.url || undefined;
 }
 
-
 /**
  * Core function that implements the Fetch WebAPI using an Axios client.
  * It constructs an Axios request from Fetch API arguments, makes the request,

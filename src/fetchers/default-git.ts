@@ -25,7 +25,6 @@ interface CommitToLint {
  * than a specific event payload from a provider like GitHub.
  */
 export class GenericCommitFetcher implements ICommitFetcher<string> {
-
   /**
    * Fetches commits from the local git repository using `git log`.
    *

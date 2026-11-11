@@ -22,7 +22,6 @@ import { getOctokit } from '@actions/github';
  * event payload subset if available.
  */
 export class PushEventCommitFetcher implements ICommitFetcher<PushEventPayloadSubset> {
-
   /**
    * Fetches commits from a push event.
    *

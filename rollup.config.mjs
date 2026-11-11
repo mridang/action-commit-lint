@@ -6,7 +6,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import alias from '@rollup/plugin-alias';
 import commonjs from '@rollup/plugin-commonjs';
 import path from 'node:path';
-import { readFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { builtinModules } from 'node:module';
 import json from '@rollup/plugin-json';
 import typescript from '@rollup/plugin-typescript';
@@ -16,21 +16,43 @@ const NODE_BUILTINS = builtinModules.reduce(
   [],
 );
 
+/**
+ * Replaces every match of a global regex using an async replacer.
+ *
+ * @param {string} code Source text to rewrite.
+ * @param {RegExp} pattern Global pattern to match.
+ * @param {(...args: string[]) => Promise<string>} replacer Async replacer.
+ * @returns {Promise<string>} The rewritten text.
+ */
+async function replaceAllAsync(code, pattern, replacer) {
+  const matches = [...code.matchAll(pattern)];
+  const replacements = await Promise.all(
+    matches.map((found) => replacer(...found)),
+  );
+  let result = '';
+  let last = 0;
+  for (const [index, found] of matches.entries()) {
+    result += code.slice(last, found.index) + replacements[index];
+    last = found.index + found[0].length;
+  }
+  return result + code.slice(last);
+}
+
 const patched = path.resolve('src/load.patch.ts');
 
 const inlineHbsPlugin = {
   name: 'inline-hbs',
-  transform(code, id) {
+  async transform(code, id) {
     const readFilePattern =
       /readFile\s*\(\s*resolve\s*\(\s*__dirname\s*,\s*(['"`])(.+?\.hbs)\1\s*\)\s*,\s*['"`]utf-8['"`]\s*\)/g;
 
-    const newCode = code.replaceAll(
+    const newCode = await replaceAllAsync(
+      code,
       readFilePattern,
-      (match, _quote, hbsPath) => {
+      async (match, _quote, hbsPath) => {
         try {
           const filePath = path.resolve(path.dirname(id), hbsPath);
-          // eslint-disable-next-line n/no-sync -- the bundler inlines templates synchronously inside replaceAll
-          const fileContent = readFileSync(filePath, 'utf8');
+          const fileContent = await readFile(filePath, 'utf8');
           return JSON.stringify(fileContent);
         } catch (error) {
           // eslint-disable-next-line unicorn/no-this-outside-of-class -- rollup binds the plugin context to this in transform hooks
@@ -55,7 +77,7 @@ const inlineHbsPlugin = {
 
 const inlinePackageJsonPlugin = {
   name: 'inline-json',
-  transform(code, id) {
+  async transform(code, id) {
     if (!id.includes('node_modules')) {
       return null;
     }
@@ -63,13 +85,13 @@ const inlinePackageJsonPlugin = {
     const requirePattern =
       /require\((['"`])([-./\w]+?(?:package\.json|commitlint\.schema\.json))\1\)/g;
 
-    const newCode = code.replaceAll(
+    const newCode = await replaceAllAsync(
+      code,
       requirePattern,
-      (match, _quote, requiredPath) => {
+      async (match, _quote, requiredPath) => {
         try {
           const filePath = path.resolve(path.dirname(id), requiredPath);
-          // eslint-disable-next-line n/no-sync -- the bundler inlines package metadata synchronously inside replaceAll
-          return readFileSync(filePath, 'utf8');
+          return await readFile(filePath, 'utf8');
         } catch (error) {
           // eslint-disable-next-line unicorn/no-this-outside-of-class -- rollup binds the plugin context to this in transform hooks
           this.warn(
