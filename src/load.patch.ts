@@ -62,7 +62,10 @@ export default async function loadPlugin(
     }
 
     // eslint-disable-next-line no-unsanitized/method -- the plugin path is resolved from the installed package, not user input
-    const loadedModule = await import(pathToFileURL(entry).href);
+    const loadedModule = (await import(pathToFileURL(entry).href)) as Record<
+      string,
+      unknown
+    >;
     const plugin =
       'default' in loadedModule ? loadedModule.default : loadedModule;
 
@@ -71,7 +74,9 @@ export default async function loadPlugin(
       try {
         const pkgJson = resolveFrom(cwd, `${longName}/package.json`);
         // eslint-disable-next-line no-unsanitized/method -- the package.json path is resolved from the installed package, not user input
-        const pkgModule = await import(pathToFileURL(pkgJson).href);
+        const pkgModule = (await import(pathToFileURL(pkgJson).href)) as {
+          version?: string;
+        };
         version = pkgModule.version ?? version;
       } catch {
         // The version is informational only, so keep the default when the

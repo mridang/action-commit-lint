@@ -6,7 +6,7 @@ import { access } from 'node:fs/promises';
 import { debug as debugLog, info } from '@actions/core';
 import lintLib from '@commitlint/lint';
 import loadConfig from '@commitlint/load';
-import type { LintOutcome, QualifiedRules } from '@commitlint/types';
+import type { LintOutcome } from '@commitlint/types';
 import type {
   ActualParserOptions,
   CommitToLint,
@@ -31,7 +31,7 @@ export interface Formatter {
    * Populates a Summary object with a formatted representation of the results.
    * @param results - The results object to format.
    */
-  format(results: Results): void;
+  format(results: Results): void | Promise<void>;
 }
 
 /**
@@ -124,10 +124,7 @@ export class Linter {
         );
       }
       info(`Loading commitlint configuration from: ${this.configPath}`);
-      return (await loadConfig(
-        {},
-        { cwd: this.projectBase, file: this.configPath },
-      )) as LoadedCommitlintConfig;
+      return loadConfig({}, { cwd: this.projectBase, file: this.configPath });
     } else {
       throw new Error(
         `No configuration path was provided. A path to a valid commitlint configuration file is required.`,
@@ -157,19 +154,15 @@ export class Linter {
           return commit;
         })
         .map(async (commit) => {
-          const lintResult = await lintLib(
-            commit.message,
-            loadedConfig.rules as QualifiedRules,
-            {
-              parserOpts:
-                (loadedConfig.parserPreset?.parserOpts as
-                  ActualParserOptions | undefined) ?? {},
-              plugins: loadedConfig.plugins ?? {},
-              ignores: loadedConfig.ignores ?? [],
-              defaultIgnores: loadedConfig.defaultIgnores ?? true,
-              helpUrl: this.helpUrl || loadedConfig.helpUrl,
-            },
-          );
+          const lintResult = await lintLib(commit.message, loadedConfig.rules, {
+            parserOpts:
+              (loadedConfig.parserPreset?.parserOpts as
+                ActualParserOptions | undefined) ?? {},
+            plugins: loadedConfig.plugins ?? {},
+            ignores: loadedConfig.ignores ?? [],
+            defaultIgnores: loadedConfig.defaultIgnores ?? true,
+            helpUrl: this.helpUrl || loadedConfig.helpUrl,
+          });
 
           return {
             ...lintResult,

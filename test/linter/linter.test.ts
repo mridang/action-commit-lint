@@ -2,6 +2,7 @@
  * @file Tests for the Linter class and its configuration loading.
  */
 // noinspection ES6PreferShortImport
+import { describe, it, expect } from '@jest/globals';
 import { Linter } from '../../src/linter/index.js';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -34,7 +35,7 @@ describe('Linter', () => {
   const createCommitlintrcYaml = async (
     dir: string,
     configContent: object,
-    filename: string = '.commitlintrc.yaml',
+    filename = '.commitlintrc.yaml',
   ) => {
     const filePath = path.join(dir, filename);
     await writeFile(filePath, stringifyYaml(configContent));

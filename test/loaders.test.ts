@@ -1,6 +1,7 @@
 /**
  * @file Tests for the cosmiconfig loaders that install configuration dependencies.
  */
+import { it, expect } from '@jest/globals';
 import { access, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 // eslint-disable-next-line e18e/ban-dependencies -- the action is built on cosmiconfig search and loader semantics, and lilconfig is not a drop-in replacement
@@ -8,6 +9,13 @@ import { cosmiconfig } from 'cosmiconfig';
 import { createLoaders } from '../src/loaders.js';
 import { stringify as yamlStringify } from 'yaml';
 import { withTemporaryDir } from './helpers/with-temporary-dir.js';
+
+/** The parts of a generated package.json or package-lock.json that the tests read. */
+interface GeneratedManifest {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  packages?: Record<string, unknown>;
+}
 
 const baseConfig = {
   branches: ['main'],
@@ -28,7 +36,7 @@ it.each([
   ['release.config.ts', false, `export default {};`],
 ])(
   'correctly handles %s config with isDeclarative = %s',
-  (filename, isDeclarative, contents) =>
+  async (filename, isDeclarative, contents) =>
     withTemporaryDir(async ({ tmp }) => {
       const filepath = path.join(tmp, filename);
       await writeFile(filepath, contents);
@@ -65,14 +73,18 @@ it.each([
       await expect(access(pkgJsonPath)).resolves.toBeUndefined();
       await expect(access(pkgLockPath)).resolves.toBeUndefined();
 
-      const pkgJson = JSON.parse(await readFile(pkgJsonPath, 'utf8'));
+      const pkgJson = JSON.parse(
+        await readFile(pkgJsonPath, 'utf8'),
+      ) as GeneratedManifest;
       const deps = pkgJson.dependencies || pkgJson.devDependencies;
       expect(deps).toMatchObject({
         '@semantic-release/commit-analyzer': '*',
         '@mridang/semantic-release-peer-version': '*',
       });
 
-      const pkgLock = JSON.parse(await readFile(pkgLockPath, 'utf8'));
+      const pkgLock = JSON.parse(
+        await readFile(pkgLockPath, 'utf8'),
+      ) as GeneratedManifest;
       expect(pkgLock.packages).toHaveProperty(
         'node_modules/@semantic-release/commit-analyzer',
       );
@@ -82,7 +94,7 @@ it.each([
     })(),
 );
 
-it('pins an unversioned @commitlint/* config to the bundled engine major', () =>
+it('pins an unversioned @commitlint/* config to the bundled engine major', async () =>
   withTemporaryDir(async ({ tmp }) => {
     const filepath = path.join(tmp, '.commitlintrc.json');
     await writeFile(
@@ -100,7 +112,7 @@ it('pins an unversioned @commitlint/* config to the bundled engine major', () =>
 
     const pkgJson = JSON.parse(
       await readFile(path.join(tmp, 'package.json'), 'utf8'),
-    );
+    ) as GeneratedManifest;
     const deps = pkgJson.dependencies || pkgJson.devDependencies;
     // Must NOT be '*' (which resolves to config-conventional@20, ESM-only and
     // incompatible with the bundled v19 engine — breaks `feat!:` parsing, #37).

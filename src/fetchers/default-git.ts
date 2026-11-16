@@ -5,7 +5,7 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { debug as debugLog, error as coreError } from '@actions/core';
-import { ICommitFetcher } from '../types.js';
+import type { ICommitFetcher } from '../types.js';
 
 const execAsync = promisify(exec);
 
