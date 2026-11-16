@@ -13,10 +13,15 @@ import {
   debug as debugLog,
   error as coreError,
 } from '@actions/core';
+// eslint-disable-next-line e18e/ban-dependencies -- the action is built on cosmiconfig search and loader semantics, and lilconfig is not a drop-in replacement
 import type { Loader } from 'cosmiconfig';
+// eslint-disable-next-line e18e/ban-dependencies -- the action is built on cosmiconfig search and loader semantics, and lilconfig is not a drop-in replacement
 import { defaultLoaders } from 'cosmiconfig';
 
 const execAsync = promisify(exec);
+
+/** Matches a Windows or Unix line break. */
+const LINE_BREAK = /\r?\n/;
 
 /**
  * Major version of the commitlint engine this action bundles (see the
@@ -207,7 +212,7 @@ function imperativeLoader(loader: Loader, allowForce: boolean): Loader {
         cwd,
         encoding: 'utf8',
       });
-      stdout.split(/\r?\n/).forEach((line) => debugLog(line));
+      for (const line of stdout.split(LINE_BREAK)) debugLog(line);
     } catch (error) {
       if (error instanceof Error || typeof error === 'string') {
         coreError(error);
@@ -235,17 +240,17 @@ function imperativeLoader(loader: Loader, allowForce: boolean): Loader {
  */
 export function createLoaders(allowForce = false) {
   const dLoader = (loader: Loader) => declarativeLoader(loader);
-  const iLoader = (loader: Loader) => imperativeLoader(loader, allowForce);
+  const indexLoader = (loader: Loader) => imperativeLoader(loader, allowForce);
 
   return {
     ...defaultLoaders,
-    '.json': iLoader(dLoader(defaultLoaders['.json'])),
-    '.yaml': iLoader(dLoader(defaultLoaders['.yaml'])),
-    '.yml': iLoader(dLoader(defaultLoaders['.yml'])),
-    noExt: iLoader(dLoader(defaultLoaders['.yaml'])),
-    '.js': iLoader(defaultLoaders['.js']),
-    '.cjs': iLoader(defaultLoaders['.cjs']),
-    '.mjs': iLoader(defaultLoaders['.mjs']),
-    '.ts': iLoader(defaultLoaders['.ts']),
+    '.json': indexLoader(dLoader(defaultLoaders['.json'])),
+    '.yaml': indexLoader(dLoader(defaultLoaders['.yaml'])),
+    '.yml': indexLoader(dLoader(defaultLoaders['.yml'])),
+    noExt: indexLoader(dLoader(defaultLoaders['.yaml'])),
+    '.js': indexLoader(defaultLoaders['.js']),
+    '.cjs': indexLoader(defaultLoaders['.cjs']),
+    '.mjs': indexLoader(defaultLoaders['.mjs']),
+    '.ts': indexLoader(defaultLoaders['.ts']),
   };
 }

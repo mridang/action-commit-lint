@@ -3,6 +3,7 @@
  */
 import nock from 'nock';
 import { getOctokit } from '@actions/github';
+// eslint-disable-next-line e18e/ban-dependencies -- the tests drive the fetchers through a real Axios instance and its types, so fetch would not exercise the same transport
 import axios from 'axios';
 import { PullRequestCommitFetcher } from '../../src/fetchers/pull-request.js';
 import type { OctokitInstance } from '../../src/types.js';
@@ -20,6 +21,9 @@ afterAll(() => {
   nock.enableNetConnect();
 });
 
+/** Matches the GitHub JSON media type sent in the accept header. */
+const GITHUB_JSON_ACCEPT_PATTERN = /application\/vnd\.github\.v3\+json/i;
+
 describe('PullRequestCommitFetcher', () => {
   let octokit: OctokitInstance;
   const fetcher = new PullRequestCommitFetcher();
@@ -35,7 +39,7 @@ describe('PullRequestCommitFetcher', () => {
 
   it('should fetch and map commits correctly when API returns data', async () => {
     nock('https://api.github.com')
-      .matchHeader('accept', /application\/vnd\.github\.v3\+json/i)
+      .matchHeader('accept', GITHUB_JSON_ACCEPT_PATTERN)
       .get(`/repos/test-owner/test-repo/pulls/${123}/commits`)
       .query(true)
       .reply(200, [
@@ -70,7 +74,7 @@ describe('PullRequestCommitFetcher', () => {
 
   it('should return an empty array if the API returns no commits', async () => {
     nock('https://api.github.com')
-      .matchHeader('accept', /application\/vnd\.github\.v3\+json/i)
+      .matchHeader('accept', GITHUB_JSON_ACCEPT_PATTERN)
       .get(`/repos/test-owner/test-repo/pulls/${123}/commits`)
       .query(true)
       .reply(200, []);
@@ -106,7 +110,7 @@ describe('PullRequestCommitFetcher', () => {
 
   it('should throw an error if the GitHub API call fails', async () => {
     nock('https://api.github.com')
-      .matchHeader('accept', /application\/vnd\.github\.v3\+json/i)
+      .matchHeader('accept', GITHUB_JSON_ACCEPT_PATTERN)
       .get(`/repos/test-owner/test-repo/pulls/${123}/commits`)
       .query(true)
       .reply(500, { message: 'Internal Server Error' });
@@ -123,7 +127,7 @@ describe('PullRequestCommitFetcher', () => {
 
   it('should throw an error if API returns non-array data for commits', async () => {
     nock('https://api.github.com')
-      .matchHeader('accept', /application\/vnd\.github\.v3\+json/i)
+      .matchHeader('accept', GITHUB_JSON_ACCEPT_PATTERN)
       .get(`/repos/test-owner/test-repo/pulls/${123}/commits`)
       .query(true)
       .reply(200, { not_an_array: 'unexpected_data' });

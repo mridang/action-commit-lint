@@ -1,6 +1,7 @@
 /**
  * @file Helpers that mock GitHub API calls with nock for the fetcher tests.
  */
+// eslint-disable-next-line e18e/ban-dependencies -- the tests drive the fetchers through a real Axios instance and its types, so fetch would not exercise the same transport
 import {
   AxiosHeaders,
   AxiosHeaderValue,
@@ -230,9 +231,9 @@ const axiosFetchAdapter =
   async (input: RequestInfo, init?: Init): Promise<Response> => {
     const rawHeaders = createAxiosHeaders(init?.headers as HeadersLike);
     const lowerCasedHeaders: Record<string, string> = {};
-    Object.entries(rawHeaders).forEach(([name, value]) => {
+    for (const [name, value] of Object.entries(rawHeaders)) {
       lowerCasedHeaders[name.toLowerCase()] = value;
-    });
+    }
 
     if (!('content-type' in lowerCasedHeaders)) {
       lowerCasedHeaders['content-type'] = 'text/plain;charset=UTF-8';

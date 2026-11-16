@@ -8,7 +8,7 @@ import path from 'node:path';
 import { RuleConfigSeverity } from '@commitlint/types';
 import { stringify as stringifyYaml } from 'yaml';
 import { Results } from '../../src/linter/result.js';
-import { withTempDir } from '../helpers/with-temp-dir.js';
+import { withTemporaryDir } from '../helpers/with-temporary-dir.js';
 
 // eslint-disable-next-line sonarjs/max-lines-per-function -- one describe block holds the linter's full rule matrix
 describe('Linter', () => {
@@ -64,7 +64,7 @@ describe('Linter', () => {
     ({ createConfigFn, filename }) => {
       it(
         'should load the config and lint valid commits successfully',
-        withTempDir(async ({ tmp: projectDir }) => {
+        withTemporaryDir(async ({ tmp: projectDir }) => {
           const specifiedConfigPath = await createConfigFn(
             projectDir,
             comprehensiveConfig,
@@ -104,7 +104,7 @@ describe('Linter', () => {
 
       it(
         'should identify errors for invalid commits',
-        withTempDir(async ({ tmp: projectDir }) => {
+        withTemporaryDir(async ({ tmp: projectDir }) => {
           const specifiedConfigPath = await createConfigFn(
             projectDir,
             comprehensiveConfig,
@@ -161,7 +161,7 @@ describe('Linter', () => {
 
       it(
         'should handle a commit with only warnings correctly',
-        withTempDir(async ({ tmp: projectDir }) => {
+        withTemporaryDir(async ({ tmp: projectDir }) => {
           const specifiedConfigPath = await createConfigFn(
             projectDir,
             comprehensiveConfig,
@@ -207,7 +207,7 @@ describe('Linter', () => {
 
   it(
     'should throw an error if a specified config file is not found',
-    withTempDir(async ({ tmp: projectDir }) => {
+    withTemporaryDir(async ({ tmp: projectDir }) => {
       const specifiedConfigPath = path.join(
         projectDir,
         'nonexistent.commitlintrc.json',
@@ -222,7 +222,7 @@ describe('Linter', () => {
 
   it(
     'should return a valid Results object for an empty list of commits',
-    withTempDir(async ({ tmp: projectDir }) => {
+    withTemporaryDir(async ({ tmp: projectDir }) => {
       const configPath = await createCommitlintrcJson(
         projectDir,
         comprehensiveConfig,
@@ -262,7 +262,7 @@ describe('Linter', () => {
 
     it(
       'passes a scoped header with a compliant body',
-      withTempDir(async ({ tmp: projectDir }) => {
+      withTemporaryDir(async ({ tmp: projectDir }) => {
         const configPath = await createCommitlintrcJson(
           projectDir,
           scopeConfig,
@@ -283,7 +283,7 @@ describe('Linter', () => {
 
     it(
       'fails on an over-long body line whether or not a scope is present',
-      withTempDir(async ({ tmp: projectDir }) => {
+      withTemporaryDir(async ({ tmp: projectDir }) => {
         const configPath = await createCommitlintrcJson(
           projectDir,
           scopeConfig,

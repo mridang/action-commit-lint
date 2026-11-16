@@ -14,6 +14,7 @@ import {
   startGroup,
   warning,
 } from '@actions/core';
+// eslint-disable-next-line e18e/ban-dependencies -- the action is built on cosmiconfig search and loader semantics, and lilconfig is not a drop-in replacement
 import { cosmiconfig, type CosmiconfigResult } from 'cosmiconfig';
 import type { CommitToLint, ICommitFetcher } from './types.js';
 
@@ -223,8 +224,8 @@ function setFailed(message: string | Error): void {
 function logItemAnnotations(lintResults: Results): void {
   for (const item of lintResults.items) {
     const head = item.input.split('\n', 1)[0].trim();
-    for (const e of item.errors) {
-      coreError(`${item.hash} ${head} — ${e.message}`);
+    for (const error of item.errors) {
+      coreError(`${item.hash} ${head} — ${error.message}`);
     }
     for (const w of item.warnings) {
       warning(`${item.hash} ${head} — ${w.message}`);

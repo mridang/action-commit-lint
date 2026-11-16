@@ -3,10 +3,11 @@
  */
 import { access, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+// eslint-disable-next-line e18e/ban-dependencies -- the action is built on cosmiconfig search and loader semantics, and lilconfig is not a drop-in replacement
 import { cosmiconfig } from 'cosmiconfig';
 import { createLoaders } from '../src/loaders.js';
 import { stringify as yamlStringify } from 'yaml';
-import { withTempDir } from './helpers/with-temp-dir.js';
+import { withTemporaryDir } from './helpers/with-temporary-dir.js';
 
 const baseConfig = {
   branches: ['main'],
@@ -28,7 +29,7 @@ it.each([
 ])(
   'correctly handles %s config with isDeclarative = %s',
   (filename, isDeclarative, contents) =>
-    withTempDir(async ({ tmp }) => {
+    withTemporaryDir(async ({ tmp }) => {
       const filepath = path.join(tmp, filename);
       await writeFile(filepath, contents);
 
@@ -82,7 +83,7 @@ it.each([
 );
 
 it('pins an unversioned @commitlint/* config to the bundled engine major', () =>
-  withTempDir(async ({ tmp }) => {
+  withTemporaryDir(async ({ tmp }) => {
     const filepath = path.join(tmp, '.commitlintrc.json');
     await writeFile(
       filepath,

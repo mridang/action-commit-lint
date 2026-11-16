@@ -3,6 +3,7 @@
  */
 import nock from 'nock';
 import { getOctokit } from '@actions/github';
+// eslint-disable-next-line e18e/ban-dependencies -- the tests drive the fetchers through a real Axios instance and its types, so fetch would not exercise the same transport
 import axios from 'axios';
 import { PushEventCommitFetcher } from '../../src/fetchers/push-event.js';
 import type {
@@ -48,6 +49,11 @@ afterAll(() => {
   nock.enableNetConnect();
 });
 
+/** Matches the GitHub JSON media type sent in the accept header. */
+const GITHUB_JSON_ACCEPT_PATTERN = /application\/vnd\.github\.v3\+json/i;
+/** Matches the error raised when comparing commits through the API fails. */
+const COMPARE_FAILURE_PATTERN = /Failed to compare commits via API/;
+
 describe('PushEventCommitFetcher', () => {
   let octokit: OctokitInstance;
   const fetcher = new PushEventCommitFetcher();
@@ -70,7 +76,7 @@ describe('PushEventCommitFetcher', () => {
     };
 
     nock('https://api.github.com')
-      .matchHeader('accept', /application\/vnd\.github\.v3\+json/i)
+      .matchHeader('accept', GITHUB_JSON_ACCEPT_PATTERN)
       .get(
         `/repos/test-owner/test-repo/compare/0000000000000000000000000000000000000000...afterShaNewBranch`,
       )
@@ -105,7 +111,7 @@ describe('PushEventCommitFetcher', () => {
 
   it('should fetch commits using compareCommits for a subsequent push', async () => {
     nock('https://api.github.com')
-      .matchHeader('accept', /application\/vnd\.github\.v3\+json/i)
+      .matchHeader('accept', GITHUB_JSON_ACCEPT_PATTERN)
       .get(`/repos/test-owner/test-repo/compare/beforeSha123...afterSha456`)
       .query(true)
       .reply(200, {
@@ -134,7 +140,7 @@ describe('PushEventCommitFetcher', () => {
 
   it('should return an empty array if compareCommits returns no commits', async () => {
     nock('https://api.github.com')
-      .matchHeader('accept', /application\/vnd\.github\.v3\+json/i)
+      .matchHeader('accept', GITHUB_JSON_ACCEPT_PATTERN)
       .get(`/repos/test-owner/test-repo/compare/beforeSha789...afterSha101`)
       .query(true)
       .reply(200, { commits: [] });
@@ -155,7 +161,7 @@ describe('PushEventCommitFetcher', () => {
 
   it('should throw error if compareCommits fails', async () => {
     nock('https://api.github.com')
-      .matchHeader('accept', /application\/vnd\.github\.v3\+json/i)
+      .matchHeader('accept', GITHUB_JSON_ACCEPT_PATTERN)
       .get(`/repos/test-owner/test-repo/compare/beforeShaFail...afterShaFail`)
       .query(true)
       .reply(500, { message: 'Server Error' });
@@ -171,7 +177,7 @@ describe('PushEventCommitFetcher', () => {
           ),
         ],
       }),
-    ).rejects.toThrow(/Failed to compare commits via API/);
+    ).rejects.toThrow(COMPARE_FAILURE_PATTERN);
     expect(nock.pendingMocks()).toHaveLength(0);
   });
 
