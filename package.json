@@ -64,7 +64,7 @@
     "@commitlint/types": "^19.8.1",
     "@eslint/compat": "^2.1.1",
     "@jest/globals": "^29.7.0",
-    "@mridang/eslint-defaults": "^2.3.0",
+    "@mridang/eslint-defaults": "^2.4.0",
     "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-commonjs": "^28.0.3",
     "@rollup/plugin-json": "^6.1.0",

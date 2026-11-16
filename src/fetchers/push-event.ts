@@ -5,7 +5,6 @@
 import type {
   CommitToLint,
   ICommitFetcher,
-  ActualPushEventCommit,
   PushEventPayloadSubset,
   OctokitInstance,
 } from '../types.js';
@@ -90,7 +89,7 @@ export class PushEventCommitFetcher implements ICommitFetcher<PushEventPayloadSu
       debugLog(
         `Using ${payloadCommits.length} commits from payload (API call not applicable or not attempted).`,
       );
-      return (payloadCommits as ActualPushEventCommit[]).map((commit) => ({
+      return payloadCommits.map((commit) => ({
         message: commit.message,
         hash: commit.id || 'unknown_sha',
       }));

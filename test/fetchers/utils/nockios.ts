@@ -2,7 +2,7 @@
  * @file Helpers that mock GitHub API calls with nock for the fetcher tests.
  */
 // eslint-disable-next-line e18e/ban-dependencies -- the tests drive the fetchers through a real Axios instance and its types, so fetch would not exercise the same transport
-import {
+import type {
   AxiosHeaders,
   AxiosHeaderValue,
   AxiosInstance,
@@ -10,18 +10,16 @@ import {
   AxiosResponse,
   AxiosResponseHeaders,
   HeadersDefaults,
-  Method,
   RawAxiosResponseHeaders,
-  ResponseType,
 } from 'axios';
 
-import {
+import type {
   RequestInit,
   RequestInfo,
   HeadersInit,
   ResponseInit,
-  Response,
 } from 'undici';
+import { Response } from 'undici';
 
 /**
  * Represents Headers-like objects that can be processed.
@@ -29,7 +27,7 @@ import {
  */
 type HeadersLike =
   | string[][]
-  | Record<string, string | undefined | number | boolean | AxiosHeaderValue>
+  | Record<string, string | undefined | number | AxiosHeaderValue>
   | Headers
   | HeadersDefaults;
 
@@ -88,7 +86,7 @@ function createFetchHeaders(
       } else if (typeof value === 'string') {
         return [[name, value]];
       } else if (Array.isArray(value)) {
-        return value.filter((v) => !isNil(v)).map((v) => [name, String(v)]);
+        return value.filter((v) => !isNil(v)).map((v) => [name, v]);
       } else {
         return [[name, String(value)]];
       }
@@ -152,7 +150,7 @@ function createAxiosHeaders(
   } else {
     let processableRecord: Record<
       string,
-      AxiosHeaderValue | string | number | boolean | undefined | null
+      AxiosHeaderValue | string | number | undefined | null
     >;
 
     processableRecord =
@@ -160,7 +158,7 @@ function createAxiosHeaders(
         ? (headersInput as AxiosHeaders).toJSON()
         : (headersInput as Record<
             string,
-            AxiosHeaderValue | string | number | boolean | undefined | null
+            AxiosHeaderValue | string | number | undefined | null
           >);
 
     return Object.entries(processableRecord).reduce<Record<string, string>>(
@@ -229,7 +227,7 @@ const axiosFetchAdapter =
     transformer: CustomAxiosTransformer<Init> = (config) => config,
   ) =>
   async (input: RequestInfo, init?: Init): Promise<Response> => {
-    const rawHeaders = createAxiosHeaders(init?.headers as HeadersLike);
+    const rawHeaders = createAxiosHeaders(init?.headers);
     const lowerCasedHeaders: Record<string, string> = {};
     for (const [name, value] of Object.entries(rawHeaders)) {
       lowerCasedHeaders[name.toLowerCase()] = value;
@@ -240,11 +238,11 @@ const axiosFetchAdapter =
     }
 
     const rawConfig: AxiosRequestConfig = {
-      url: getUrl(input as UrlLike),
-      method: (init?.method as Method) || 'GET',
+      url: getUrl(input),
+      method: init?.method || 'GET',
       data: init?.body,
       headers: lowerCasedHeaders,
-      responseType: 'arraybuffer' as ResponseType,
+      responseType: 'arraybuffer',
     };
 
     const config = transformer(rawConfig, input, init);

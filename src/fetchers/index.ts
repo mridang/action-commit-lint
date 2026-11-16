@@ -4,7 +4,7 @@
 import { MergeGroupCommitFetcher } from './merge-group.js';
 import { PullRequestCommitFetcher } from './pull-request.js';
 import { PushEventCommitFetcher } from './push-event.js';
-import { ICommitFetcher } from '../types.js';
+import type { ICommitFetcher } from '../types.js';
 import { GenericCommitFetcher } from './default-git.js';
 
 /**

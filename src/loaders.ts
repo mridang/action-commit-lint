@@ -85,7 +85,10 @@ async function pathExists(target: string): Promise<boolean> {
  * await runInheritedCommand('npm install --no-audit', '/repo');
  * ```
  */
-function runInheritedCommand(command: string, cwd: string): Promise<void> {
+async function runInheritedCommand(
+  command: string,
+  cwd: string,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, { cwd, shell: true, stdio: 'inherit' });
     child.once('error', reject);
@@ -115,7 +118,7 @@ function runInheritedCommand(command: string, cwd: string): Promise<void> {
  */
 function declarativeLoader(loader: Loader): Loader {
   return async (filepath, content) => {
-    const config = await loader(filepath, content);
+    const config: unknown = await loader(filepath, content);
 
     if (typeof config !== 'object' || config === null) {
       throw new Error('Expected declarative config object');
@@ -132,8 +135,9 @@ function declarativeLoader(loader: Loader): Loader {
           } else {
             return Array.isArray(v)
               ? v
-                  .map((x) => {
-                    return Array.isArray(x) ? x[0] : x;
+                  .map((x: unknown) => {
+                    const first: unknown = Array.isArray(x) ? x[0] : x;
+                    return first;
                   })
                   .filter((x): x is string => typeof x === 'string')
                   .map((x) => x.trim())
@@ -196,7 +200,7 @@ function declarativeLoader(loader: Loader): Loader {
 function imperativeLoader(loader: Loader, allowForce: boolean): Loader {
   return async (filepath, content) => {
     debugLog(`Loading imperative config: ${filepath}`);
-    const config = await loader(filepath, content);
+    const config: unknown = await loader(filepath, content);
     const cwd = path.dirname(filepath);
 
     startGroup('Installing dependencies');

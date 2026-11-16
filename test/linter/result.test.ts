@@ -1,6 +1,8 @@
 /**
  * @file Tests for the Results aggregate and its accessors.
  */
+import { describe, test, expect } from '@jest/globals';
+import { RuleConfigSeverity } from '@commitlint/types';
 import { Results } from '../../src/linter/result.js';
 
 describe('Results', () => {
@@ -19,7 +21,7 @@ describe('Results', () => {
     errors: [],
     warnings: [
       {
-        level: 1,
+        level: RuleConfigSeverity.Warning,
         valid: true,
         name: 'subject-max-length',
         message: 'Subject may not be longer than 72 characters',
@@ -33,7 +35,7 @@ describe('Results', () => {
     valid: false,
     errors: [
       {
-        level: 2,
+        level: RuleConfigSeverity.Error,
         valid: false,
         name: 'type-empty',
         message: 'Type may not be empty',
@@ -48,7 +50,7 @@ describe('Results', () => {
     valid: false,
     errors: [
       {
-        level: 2,
+        level: RuleConfigSeverity.Error,
         valid: false,
         name: 'subject-empty',
         message: 'Subject may not be empty',
@@ -63,19 +65,19 @@ describe('Results', () => {
     valid: false,
     errors: [
       {
-        level: 2,
+        level: RuleConfigSeverity.Error,
         valid: false,
         name: 'type-empty',
         message: 'Type may not be empty',
       },
       {
-        level: 2,
+        level: RuleConfigSeverity.Error,
         valid: false,
         name: 'subject-case',
         message: 'Subject must be in lowercase',
       },
       {
-        level: 2,
+        level: RuleConfigSeverity.Error,
         valid: false,
         name: 'header-max-length',
         message: 'Header is too long',
@@ -91,13 +93,13 @@ describe('Results', () => {
     errors: [],
     warnings: [
       {
-        level: 1,
+        level: RuleConfigSeverity.Warning,
         valid: true,
         name: 'subject-max-length',
         message: 'Subject too long',
       },
       {
-        level: 1,
+        level: RuleConfigSeverity.Warning,
         valid: true,
         name: 'body-leading-blank',
         message: 'Body should start with blank line',

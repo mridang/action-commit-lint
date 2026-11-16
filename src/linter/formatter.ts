@@ -3,10 +3,11 @@
  * job summary.
  */
 import { summary as summarizer } from '@actions/core';
-// @ts-expect-error since these are not exported
-import type { Summary, SummaryTableRow } from '@actions/core/lib/summary';
-import { Formatter } from './index.js';
-import { Results } from './result.js';
+import type { Formatter } from './index.js';
+import type { Results } from './result.js';
+
+type Summary = typeof summarizer;
+type SummaryTableRow = Parameters<Summary['addTable']>[0][number];
 
 const ICON_BASE_URL =
   'https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res';

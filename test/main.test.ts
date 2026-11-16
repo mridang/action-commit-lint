@@ -170,7 +170,7 @@ describe('Commitlint Action Integration Tests', () => {
     },
   ];
 
-  test.each(testMatrix)('$description', (params) => {
+  test.each(testMatrix)('$description', async (params) => {
     return withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, params.configFileName),

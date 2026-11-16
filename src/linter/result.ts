@@ -2,7 +2,7 @@
  * @file Aggregated result of linting a set of commits, with counts and the
  * accessors used by the formatter and the action's exit logic.
  */
-import { Formatter, SimplifiedLinterResult } from './index.js';
+import type { Formatter, SimplifiedLinterResult } from './index.js';
 
 /**
  * A container for the complete results of a linting operation. It holds the
@@ -133,6 +133,6 @@ export class Results {
    * ```
    */
   public async format(formatter: Formatter): Promise<void> {
-    formatter.format(this);
+    await formatter.format(this);
   }
 }

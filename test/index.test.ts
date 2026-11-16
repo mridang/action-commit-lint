@@ -36,7 +36,7 @@ import { tmpdir } from 'node:os';
  */
 async function runAction(
   inputs: Record<string, string>,
-  extraEnv: Record<string, string | undefined> = {},
+  extraEnv: Record<string, string | undefined> | undefined,
   eventPayload: unknown,
   commitFetcherFactory: (event: string) => ICommitFetcher | null,
 ): Promise<string | void> {
@@ -60,9 +60,9 @@ async function runAction(
       GITHUB_STEP_SUMMARY: summaryPath,
       GITHUB_EVENT_PATH: eventPath,
     },
-    () => run(undefined, commitFetcherFactory),
+    async () => run(undefined, commitFetcherFactory),
   );
-  return await wrapped();
+  return wrapped();
 }
 
 /**
@@ -289,7 +289,7 @@ describe('Commitlint Action Integration Tests', () => {
     },
   ];
 
-  test.each(testMatrix)('$description', (params) => {
+  test.each(testMatrix)('$description', async (params) => {
     return withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, params.configFileName),
@@ -310,7 +310,7 @@ describe('Commitlint Action Integration Tests', () => {
         message: commit.message,
       }));
 
-      const action = () =>
+      const action = async () =>
         runAction(
           {
             'github-token': 'fake-token',
@@ -343,7 +343,7 @@ describe('Commitlint Action Integration Tests', () => {
     })();
   });
 
-  test('emits a workflow notice when lint-strategy=pr-title skips on a non-PR event', () => {
+  test('emits a workflow notice when lint-strategy=pr-title skips on a non-PR event', async () => {
     return withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, '.commitlintrc.json'),
@@ -356,12 +356,12 @@ describe('Commitlint Action Integration Tests', () => {
       const stdoutChunks: string[] = [];
       const stdoutSpy = jest
         .spyOn(process.stdout, 'write')
-        .mockImplementation(((chunk: string | Uint8Array): boolean => {
+        .mockImplementation((chunk: string | Uint8Array): boolean => {
           stdoutChunks.push(
             typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString(),
           );
           return true;
-        }) as typeof process.stdout.write);
+        });
 
       try {
         await runAction(
@@ -396,7 +396,7 @@ describe('Commitlint Action Integration Tests', () => {
     })();
   });
 
-  test('emits one error line per failing commit with the rule reason', () => {
+  test('emits one error line per failing commit with the rule reason', async () => {
     return withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, '.commitlintrc.json'),
@@ -410,12 +410,12 @@ describe('Commitlint Action Integration Tests', () => {
       const stdoutChunks: string[] = [];
       const stdoutSpy = jest
         .spyOn(process.stdout, 'write')
-        .mockImplementation(((chunk: string | Uint8Array): boolean => {
+        .mockImplementation((chunk: string | Uint8Array): boolean => {
           stdoutChunks.push(
             typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString(),
           );
           return true;
-        }) as typeof process.stdout.write);
+        });
 
       try {
         await expect(
