@@ -3,6 +3,7 @@
  */
 import nock from 'nock';
 import { getOctokit } from '@actions/github';
+// eslint-disable-next-line e18e/ban-dependencies -- the tests drive the fetchers through a real Axios instance and its types, so fetch would not exercise the same transport
 import axios from 'axios';
 import { MergeGroupCommitFetcher } from '../../src/fetchers/merge-group.js';
 import type {

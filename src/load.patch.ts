@@ -19,6 +19,9 @@ import { info } from '@actions/core';
 const cwd = process.cwd();
 const rootDir = new URL('.', import.meta.url).pathname;
 
+/** Matches any whitespace, which is not allowed in a plugin name. */
+const WHITESPACE_PATTERN = /\s/u;
+
 /**
  * Loads a commitlint plugin by name and registers it in the given plugin
  * record, resolving the package from the working directory.
@@ -42,7 +45,7 @@ export default async function loadPlugin(
   const longName = normalizePackageName(pluginName);
   const key = longName === pluginName ? getShorthandName(longName) : pluginName;
 
-  if (/\s/u.test(pluginName)) {
+  if (WHITESPACE_PATTERN.test(pluginName)) {
     throw new WhitespacePluginError(pluginName, { pluginName: longName });
   }
 
@@ -59,8 +62,9 @@ export default async function loadPlugin(
     }
 
     // eslint-disable-next-line no-unsanitized/method -- the plugin path is resolved from the installed package, not user input
-    const mod = await import(pathToFileURL(entry).href);
-    const plugin = 'default' in mod ? mod.default : mod;
+    const loadedModule = await import(pathToFileURL(entry).href);
+    const plugin =
+      'default' in loadedModule ? loadedModule.default : loadedModule;
 
     if (debug) {
       let version = 'unknown';

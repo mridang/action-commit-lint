@@ -11,10 +11,10 @@ import { builtinModules } from 'node:module';
 import json from '@rollup/plugin-json';
 import typescript from '@rollup/plugin-typescript';
 
-const NODE_BUILTINS = builtinModules.reduce(
-  (acc, name) => [...acc, name, `node:${name}`],
-  [],
-);
+const NODE_BUILTINS = builtinModules.flatMap((name) => [name, `node:${name}`]);
+
+/** Matches the node_modules directory in a module path. */
+const NODE_MODULES_PATTERN = /node_modules/;
 
 /**
  * Replaces every match of a global regex using an async replacer.
@@ -51,7 +51,7 @@ class InlineHbsPlugin {
     const readFilePattern =
       /readFile\s*\(\s*resolve\s*\(\s*__dirname\s*,\s*(['"`])(.+?\.hbs)\1\s*\)\s*,\s*['"`]utf-8['"`]\s*\)/g;
 
-    const newCode = await replaceAllAsync(
+    const rewrittenCode = await replaceAllAsync(
       code,
       readFilePattern,
       async (match, _quote, hbsPath) => {
@@ -68,9 +68,9 @@ class InlineHbsPlugin {
       },
     );
 
-    if (newCode !== code) {
+    if (rewrittenCode !== code) {
       return {
-        code: newCode,
+        code: rewrittenCode,
         map: null,
       };
     }
@@ -94,7 +94,7 @@ class InlinePackageJsonPlugin {
     const requirePattern =
       /require\((['"`])([-./\w]+?(?:package\.json|commitlint\.schema\.json))\1\)/g;
 
-    const newCode = await replaceAllAsync(
+    const rewrittenCode = await replaceAllAsync(
       code,
       requirePattern,
       async (match, _quote, requiredPath) => {
@@ -111,7 +111,7 @@ class InlinePackageJsonPlugin {
     );
 
     return {
-      code: newCode,
+      code: rewrittenCode,
       map: null,
     };
   }
@@ -178,7 +178,7 @@ const createRollupConfig = (configOverrides = {}) => ({
       preferBuiltins: true,
     }),
     commonjs({
-      include: /node_modules/,
+      include: NODE_MODULES_PATTERN,
       requireReturnsDefault: () => {
         return 'auto';
       },

@@ -23,14 +23,14 @@ import path from 'node:path';
  * temporary directory, run the provided function, and perform cleanup.
  * @example
  * ```ts
- * await withTempDir(async ({ tmp }) => {
+ * await withTemporaryDir(async ({ tmp }) => {
  *   await writeFile(path.join(tmp, 'package.json'), '{}');
  * })();
  * ```
  */
-export function withTempDir<T extends (ctx: { tmp: string }) => Promise<void>>(
-  fn: T,
-) {
+export function withTemporaryDir<
+  T extends (ctx: { tmp: string }) => Promise<void>,
+>(fn: T) {
   return async () => {
     const tmp = await mkdtemp(path.join(tmpdir(), 'test-'));
     await fn({ tmp });

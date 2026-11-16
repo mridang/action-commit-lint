@@ -7,8 +7,8 @@ import path from 'node:path';
 // noinspection ES6PreferShortImport
 import { run } from '../src/index.js';
 import type { CommitToLint, ICommitFetcher } from '../src/types.js';
-import { withTempDir } from './helpers/with-temp-dir.js';
-import { withEnvVars } from './helpers/with-env-vars.js';
+import { withTemporaryDir } from './helpers/with-temporary-dir.js';
+import { withEnvVariables } from './helpers/with-env-variables.js';
 import { tmpdir } from 'node:os';
 
 /**
@@ -48,7 +48,7 @@ async function runAction(
   const eventPath = path.join(eventDir, 'event.json');
   await writeFile(eventPath, JSON.stringify(eventPayload));
 
-  const wrapped = withEnvVars(
+  const wrapped = withEnvVariables(
     {
       ...extraEnv,
       ...Object.fromEntries(
@@ -290,7 +290,7 @@ describe('Commitlint Action Integration Tests', () => {
   ];
 
   test.each(testMatrix)('$description', (params) => {
-    return withTempDir(async ({ tmp }) => {
+    return withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, params.configFileName),
         typeof params.configFileContent === 'string'
@@ -344,7 +344,7 @@ describe('Commitlint Action Integration Tests', () => {
   });
 
   test('emits a workflow notice when lint-strategy=pr-title skips on a non-PR event', () => {
-    return withTempDir(async ({ tmp }) => {
+    return withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, '.commitlintrc.json'),
         JSON.stringify({
@@ -397,7 +397,7 @@ describe('Commitlint Action Integration Tests', () => {
   });
 
   test('emits one error line per failing commit with the rule reason', () => {
-    return withTempDir(async ({ tmp }) => {
+    return withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, '.commitlintrc.json'),
         JSON.stringify({
