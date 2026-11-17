@@ -15,8 +15,8 @@ import { getOctokit } from '@actions/github';
 // eslint-disable-next-line e18e/ban-dependencies -- the tests drive the fetchers through a real Axios instance and its types, so fetch would not exercise the same transport
 import axios from 'axios';
 import { PullRequestCommitFetcher } from '../../src/fetchers/pull-request.js';
-import type { OctokitInstance } from '../../src/types.js';
 import { buildAxiosFetch } from './utils/nockios.js';
+import type { OctokitInstance } from '../../src/types.js';
 
 beforeAll(() => {
   nock.disableNetConnect();
@@ -31,7 +31,7 @@ afterAll(() => {
 });
 
 /** Matches the GitHub JSON media type sent in the accept header. */
-const GITHUB_JSON_ACCEPT_PATTERN = /application\/vnd\.github\.v3\+json/i;
+const GITHUB_JSON_ACCEPT_PATTERN = /application\/vnd\.github\.v3\+json/iu;
 
 describe('PullRequestCommitFetcher', () => {
   let octokit: OctokitInstance;

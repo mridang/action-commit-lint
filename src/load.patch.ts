@@ -50,16 +50,17 @@ export default async function loadPlugin(
   }
 
   if (!plugins[key]) {
-    let entry: string;
-    try {
-      entry = resolveFrom(cwd, longName);
-    } catch (error) {
-      throw new MissingPluginError(
-        pluginName,
-        error instanceof Error ? error.message : String(error),
-        { pluginName: longName, commitlintPath: rootDir },
-      );
-    }
+    const entry = ((): string => {
+      try {
+        return resolveFrom(cwd, longName);
+      } catch (error) {
+        throw new MissingPluginError(
+          pluginName,
+          error instanceof Error ? error.message : String(error),
+          { pluginName: longName, commitlintPath: rootDir },
+        );
+      }
+    })();
 
     // eslint-disable-next-line no-unsanitized/method -- the plugin path is resolved from the installed package, not user input
     const loadedModule = (await import(pathToFileURL(entry).href)) as Record<
@@ -70,23 +71,26 @@ export default async function loadPlugin(
       'default' in loadedModule ? loadedModule.default : loadedModule;
 
     if (debug) {
-      let version = 'unknown';
-      try {
-        const pkgJson = resolveFrom(cwd, `${longName}/package.json`);
-        // eslint-disable-next-line no-unsanitized/method -- the package.json path is resolved from the installed package, not user input
-        const pkgModule = (await import(pathToFileURL(pkgJson).href)) as {
-          version?: string;
-        };
-        version = pkgModule.version ?? version;
-      } catch {
-        // The version is informational only, so keep the default when the
-        // package.json cannot be imported.
-      }
+      const version = await (async (): Promise<string> => {
+        try {
+          const pkgJson = resolveFrom(cwd, `${longName}/package.json`);
+          // eslint-disable-next-line no-unsanitized/method -- the package.json path is resolved from the installed package, not user input
+          const pkgModule = (await import(pathToFileURL(pkgJson).href)) as {
+            version?: string;
+          };
+          return pkgModule.version ?? 'unknown';
+        } catch {
+          // The version is informational only, so keep the default when the
+          // package.json cannot be imported.
+          return 'unknown';
+        }
+      })();
       info(
         `Loaded plugin ${pluginName} (${longName}@${version}) from ${entry}`,
       );
     }
 
+    // eslint-disable-next-line functional/immutable-data, require-atomic-updates -- commitlint relies on this loader registering the plugin in the shared record it passes in
     plugins[key] = plugin;
   }
 

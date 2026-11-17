@@ -3,10 +3,11 @@
  * commitlint configuration, fetches the commits for the event, lints them and
  * reports the outcome.
  */
+import path from 'node:path';
 import {
-  debug as debugLog,
+  debug,
   endGroup,
-  error as coreError,
+  error,
   getInput,
   info,
   notice,
@@ -15,22 +16,28 @@ import {
   warning,
 } from '@actions/core';
 // eslint-disable-next-line e18e/ban-dependencies -- the action is built on cosmiconfig search and loader semantics, and lilconfig is not a drop-in replacement
-import { cosmiconfig, type CosmiconfigResult } from 'cosmiconfig';
-import type { CommitToLint, ICommitFetcher } from './types.js';
-
+import { cosmiconfig } from 'cosmiconfig';
+import { context } from '@actions/github';
 import { Linter } from './linter/index.js';
 import { createLoaders } from './loaders.js';
-import { context } from '@actions/github';
 import getCommitFetcher from './fetchers/index.js';
 import DefaultFormatter from './linter/formatter.js';
+import { getLintStrategy as makeLintStrategy } from './strategies/index.js';
 import type { Results } from './linter/result.js';
-import path from 'node:path';
+// eslint-disable-next-line e18e/ban-dependencies -- type-only import of the same cosmiconfig dependency justified above
+import type { CosmiconfigResult } from 'cosmiconfig';
+import type { CommitToLint, ICommitFetcher } from './types.js';
+import type { LintStrategyName } from './strategies/index.js';
+
+const PLURAL_RULES = new Intl.PluralRules('en');
+
+/** Wording of the commit message noun, keyed by plural category. */
+const COMMIT_MESSAGE_FORMS = {
+  one: 'commit message',
+  other: 'commit messages',
+};
 
 const Context = context.constructor as new () => typeof context;
-import {
-  getLintStrategy as makeLintStrategy,
-  type LintStrategyName,
-} from './strategies/index.js';
 
 /**
  * Retrieves the 'commit-depth' input.
@@ -43,7 +50,9 @@ import {
  */
 function getCommitDepth(): number | null {
   const commitDepthString = getInput('commit-depth');
-  if (!commitDepthString?.trim()) return null;
+  if (!commitDepthString?.trim()) {
+    return null;
+  }
   const depth = Number.parseInt(commitDepthString, 10);
   return Number.isNaN(depth) ? null : Math.max(depth, 0);
 }
@@ -61,9 +70,8 @@ function getGithubToken(): string {
   const token = getInput('github-token', { required: true }).trim();
   if (token) {
     return token;
-  } else {
-    throw new Error('The "github-token" input must not be empty.');
   }
+  throw new Error('The "github-token" input must not be empty.');
 }
 
 /**
@@ -79,13 +87,13 @@ function getAllowForceInstall(): boolean {
   const raw = getInput('allow-force-install').trim().toLowerCase();
   if (raw === 'true') {
     return true;
-  } else if (raw === 'false' || raw === '') {
-    return false;
-  } else {
-    throw new Error(
-      'Invalid value for "allow-force-install". Use "true" or "false".',
-    );
   }
+  if (raw === 'false' || raw === '') {
+    return false;
+  }
+  throw new Error(
+    'Invalid value for "allow-force-install". Use "true" or "false".',
+  );
 }
 
 /**
@@ -102,13 +110,13 @@ function getFailOnWarnings(): boolean {
   const raw = getInput('fail-on-warnings').trim().toLowerCase();
   if (raw === 'true') {
     return true;
-  } else if (raw === 'false' || raw === '') {
-    return false;
-  } else {
-    throw new Error(
-      `Invalid value for "fail-on-warnings". Expected 'true' or 'false', but received '${raw}'.`,
-    );
   }
+  if (raw === 'false' || raw === '') {
+    return false;
+  }
+  throw new Error(
+    `Invalid value for "fail-on-warnings". Expected 'true' or 'false', but received '${raw}'.`,
+  );
 }
 
 /**
@@ -125,13 +133,13 @@ function getFailOnErrors(): boolean {
   const raw = getInput('fail-on-errors').trim().toLowerCase();
   if (raw === 'false') {
     return false;
-  } else if (raw === 'true' || raw === '') {
-    return true;
-  } else {
-    throw new Error(
-      `Invalid value for "fail-on-errors". Expected 'true' or 'false', but received '${raw}'.`,
-    );
   }
+  if (raw === 'true' || raw === '') {
+    return true;
+  }
+  throw new Error(
+    `Invalid value for "fail-on-errors". Expected 'true' or 'false', but received '${raw}'.`,
+  );
 }
 
 /**
@@ -222,11 +230,14 @@ function setFailed(message: string | Error): void {
  * ```
  */
 function logItemAnnotations(lintResults: Results): void {
+  // eslint-disable-next-line functional/no-loop-statements -- the loop only writes annotations to the job log
   for (const item of lintResults.items) {
     const head = item.input.split('\n', 1)[0].trim();
-    for (const error of item.errors) {
-      coreError(`${item.hash} ${head} — ${error.message}`);
+    // eslint-disable-next-line functional/no-loop-statements -- the loop only writes annotations to the job log
+    for (const lintError of item.errors) {
+      error(`${item.hash} ${head} — ${lintError.message}`);
     }
+    // eslint-disable-next-line functional/no-loop-statements -- the loop only writes annotations to the job log
     for (const w of item.warnings) {
       warning(`${item.hash} ${head} — ${w.message}`);
     }
@@ -252,7 +263,7 @@ function reportOutcome(
   if (lintResults.hasErrors) {
     if (failOnErrs) {
       setFailed(
-        `Found ${lintResults.errorCommitsCount} commit message${lintResults.errorCommitsCount === 1 ? '' : 's'} with errors`,
+        `Found ${lintResults.errorCommitsCount} ${COMMIT_MESSAGE_FORMS[PLURAL_RULES.select(lintResults.errorCommitsCount) === 'one' ? 'one' : 'other']} with errors`,
       );
     } else {
       warning(`Commit messages have errors, but 'fail-on-errors' is false.`);
@@ -260,7 +271,7 @@ function reportOutcome(
   } else if (lintResults.hasOnlyWarnings) {
     if (failOnWarns) {
       setFailed(
-        `Found ${lintResults.warningCommitsCount} commit message${lintResults.warningCommitsCount === 1 ? '' : 's'} with warnings`,
+        `Found ${lintResults.warningCommitsCount} ${COMMIT_MESSAGE_FORMS[PLURAL_RULES.select(lintResults.warningCommitsCount) === 'one' ? 'one' : 'other']} with warnings`,
       );
     } else {
       warning(
@@ -375,16 +386,17 @@ export async function run(
       info(`Adding ${projectNodeModules} to Node.js module search path.`);
       // The bundled build runs as CommonJS, so the project's node_modules must be added to its module search path.
       // eslint-disable-next-line unicorn/prefer-module -- the bundle is CommonJS and only module.paths extends its own search path; Module.globalPaths is undocumented and process-wide, and NODE_PATH is read once at startup
-      const searchPaths = module.paths;
+      const { paths: searchPaths } = module;
+      // eslint-disable-next-line functional/immutable-data -- extending module.paths in place is the only way to widen the bundle's module search path
       searchPaths.push(projectNodeModules);
-      debugLog(`Module search paths now: ${searchPaths.join(', ')}`);
+      debug(`Module search paths now: ${searchPaths.join(', ')}`);
     }
 
     const helpUrl = getHelpURL();
     const commitDepth = getCommitDepth();
     const githubToken = getGithubToken();
 
-    debugLog(`Current working directory: ${workingDirectory}`);
+    debug(`Current working directory: ${workingDirectory}`);
     const explorer = cosmiconfig('commitlint', {
       loaders: createLoaders(getAllowForceInstall()),
     });

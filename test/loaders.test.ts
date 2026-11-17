@@ -1,13 +1,13 @@
 /**
  * @file Tests for the cosmiconfig loaders that install configuration dependencies.
  */
-import { it, expect } from '@jest/globals';
 import { access, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { it, expect } from '@jest/globals';
 // eslint-disable-next-line e18e/ban-dependencies -- the action is built on cosmiconfig search and loader semantics, and lilconfig is not a drop-in replacement
 import { cosmiconfig } from 'cosmiconfig';
+import { stringify } from 'yaml';
 import { createLoaders } from '../src/loaders.js';
-import { stringify as yamlStringify } from 'yaml';
 import { withTemporaryDir } from './helpers/with-temporary-dir.js';
 
 /** The parts of a generated package.json or package-lock.json that the tests read. */
@@ -27,9 +27,9 @@ const baseConfig = {
 
 it.each([
   ['.releaserc.json', true, JSON.stringify(baseConfig, null, 2)],
-  ['.releaserc.yaml', true, yamlStringify(baseConfig)],
-  ['.releaserc.yml', true, yamlStringify(baseConfig)],
-  ['.releaserc', true, yamlStringify(baseConfig)],
+  ['.releaserc.yaml', true, stringify(baseConfig)],
+  ['.releaserc.yml', true, stringify(baseConfig)],
+  ['.releaserc', true, stringify(baseConfig)],
   ['release.config.js', false, `module.exports = {};`],
   ['release.config.cjs', false, `module.exports = {};`],
   ['release.config.mjs', false, `export default {};`],

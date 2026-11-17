@@ -1,15 +1,15 @@
 /**
  * @file Tests for the action's main run function.
  */
-import { describe, expect, jest, test } from '@jest/globals';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
+import { describe, expect, jest, test } from '@jest/globals';
 // noinspection ES6PreferShortImport
 import { run } from '../src/index.js';
-import type { CommitToLint, ICommitFetcher } from '../src/types.js';
 import { withTemporaryDir } from './helpers/with-temporary-dir.js';
 import { withEnvVariables } from './helpers/with-env-variables.js';
-import { tmpdir } from 'node:os';
+import type { CommitToLint, ICommitFetcher } from '../src/types.js';
 
 /**
  * A test helper to execute the main action script (`run`) within a
@@ -289,8 +289,8 @@ describe('Commitlint Action Integration Tests', () => {
     },
   ];
 
-  test.each(testMatrix)('$description', async (params) => {
-    return withTemporaryDir(async ({ tmp }) => {
+  test.each(testMatrix)('$description', async (params) =>
+    withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, params.configFileName),
         typeof params.configFileContent === 'string'
@@ -323,28 +323,26 @@ describe('Commitlint Action Integration Tests', () => {
             GITHUB_REPOSITORY: 'test-owner/test-repo',
           },
           params.event.payload,
-          (): ICommitFetcher | null => {
-            return {
-              fetchCommits: async (): Promise<CommitToLint[]> => {
-                if (params.expectFetcherCalled === false) {
-                  throw new Error(
-                    'fetchCommits was called but the test asserted it must not be',
-                  );
-                }
-                return commitsToLint;
-              },
-            };
-          },
+          (): ICommitFetcher | null => ({
+            fetchCommits: async (): Promise<CommitToLint[]> => {
+              if (params.expectFetcherCalled === false) {
+                throw new Error(
+                  'fetchCommits was called but the test asserted it must not be',
+                );
+              }
+              return commitsToLint;
+            },
+          }),
         );
 
       await (params.expectToThrow
         ? expect(action()).rejects.toThrow(params.expectedErrorMessage)
         : expect(action()).resolves.not.toThrow());
-    })();
-  });
+    })(),
+  );
 
-  test('emits a workflow notice when lint-strategy=pr-title skips on a non-PR event', async () => {
-    return withTemporaryDir(async ({ tmp }) => {
+  test('emits a workflow notice when lint-strategy=pr-title skips on a non-PR event', async () =>
+    withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, '.commitlintrc.json'),
         JSON.stringify({
@@ -393,11 +391,10 @@ describe('Commitlint Action Integration Tests', () => {
       expect(allOutput).toContain('::notice::');
       expect(allOutput).toContain('lint-strategy=pr-title');
       expect(allOutput).toContain("event 'push'");
-    })();
-  });
+    })());
 
-  test('emits one error line per failing commit with the rule reason', async () => {
-    return withTemporaryDir(async ({ tmp }) => {
+  test('emits one error line per failing commit with the rule reason', async () =>
+    withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, '.commitlintrc.json'),
         JSON.stringify({
@@ -458,6 +455,5 @@ describe('Commitlint Action Integration Tests', () => {
       expect(allOutput).toContain(
         "body's lines must not be longer than 200 characters",
       );
-    })();
-  });
+    })());
 });

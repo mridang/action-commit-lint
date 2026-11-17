@@ -15,11 +15,11 @@ import { getOctokit } from '@actions/github';
 // eslint-disable-next-line e18e/ban-dependencies -- the tests drive the fetchers through a real Axios instance and its types, so fetch would not exercise the same transport
 import axios from 'axios';
 import { PushEventCommitFetcher } from '../../src/fetchers/push-event.js';
+import { buildAxiosFetch } from './utils/nockios.js';
 import type {
   ActualPushEventCommit,
   OctokitInstance,
 } from '../../src/types.js';
-import { buildAxiosFetch } from './utils/nockios.js';
 
 const createMinimalActualPushEventCommit = (
   id: string,
@@ -59,9 +59,9 @@ afterAll(() => {
 });
 
 /** Matches the GitHub JSON media type sent in the accept header. */
-const GITHUB_JSON_ACCEPT_PATTERN = /application\/vnd\.github\.v3\+json/i;
+const GITHUB_JSON_ACCEPT_PATTERN = /application\/vnd\.github\.v3\+json/iu;
 /** Matches the error raised when comparing commits through the API fails. */
-const COMPARE_FAILURE_PATTERN = /Failed to compare commits via API/;
+const COMPARE_FAILURE_PATTERN = /Failed to compare commits via API/u;
 
 describe('PushEventCommitFetcher', () => {
   let octokit: OctokitInstance;

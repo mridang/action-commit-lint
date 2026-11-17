@@ -1,19 +1,20 @@
 /**
  * @file Tests that the bundled action runs end to end.
  */
-import { describe, test } from '@jest/globals';
 import { copyFile, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 // noinspection ES6PreferShortImport
-import { withTemporaryDir } from './helpers/with-temporary-dir.js';
-import { withEnvVariables } from './helpers/with-env-variables.js';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
-import vm, { constants as VM } from 'node:vm';
-import { rollup, type RollupOptions } from 'rollup';
+import vm, { constants } from 'node:vm';
+import { describe, test } from '@jest/globals';
+import { rollup } from 'rollup';
 // eslint-disable-next-line e18e/ban-dependencies -- the test signs its fixture token with jsonwebtoken synchronous sign, which jose does not offer as a drop-in
 import jwt from 'jsonwebtoken';
 import createRollupConfig from '../rollup.config.mjs';
+import { withEnvVariables } from './helpers/with-env-variables.js';
+import { withTemporaryDir } from './helpers/with-temporary-dir.js';
+import type { RollupOptions } from 'rollup';
 
 /**
  * Bundle the project using the local rollup.config.mjs and write the output
@@ -139,7 +140,7 @@ async function runAction(
       // eslint-disable-next-line sonarjs/code-eval -- test fixture that runs the freshly bundled action in a vm context
       const result = vm.runInContext(script, context, {
         filename: actionScript,
-        importModuleDynamically: VM.USE_MAIN_CONTEXT_DEFAULT_LOADER,
+        importModuleDynamically: constants.USE_MAIN_CONTEXT_DEFAULT_LOADER,
       }) as unknown;
 
       await result;
@@ -170,8 +171,8 @@ describe('Commitlint Action Integration Tests', () => {
     },
   ];
 
-  test.each(testMatrix)('$description', async (params) => {
-    return withTemporaryDir(async ({ tmp }) => {
+  test.each(testMatrix)('$description', async (params) =>
+    withTemporaryDir(async ({ tmp }) => {
       await writeFile(
         path.join(tmp, params.configFileName),
         typeof params.configFileContent === 'string'
@@ -199,6 +200,6 @@ describe('Commitlint Action Integration Tests', () => {
         },
         params.event.payload,
       );
-    })();
-  });
+    })(),
+  );
 });

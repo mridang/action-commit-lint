@@ -2,10 +2,10 @@
  * @file Lint strategy that checks the pull request title and every commit
  * of the event together.
  */
-import type { CommitToLint } from '../types.js';
-import type { LintTargetStrategy, StrategyContext } from './index.js';
 import { CommitsStrategy } from './commits.js';
 import { PrTitleStrategy } from './pr-title.js';
+import type { CommitToLint } from '../types.js';
+import type { LintTargetStrategy, StrategyContext } from './index.js';
 
 /**
  * Lints the pull request title and every commit. Composes

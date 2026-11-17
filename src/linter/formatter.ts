@@ -2,12 +2,35 @@
  * @file Default formatter that writes the lint results to the GitHub Actions
  * job summary.
  */
-import { summary as summarizer } from '@actions/core';
+import { summary } from '@actions/core';
 import type { Formatter } from './index.js';
 import type { Results } from './result.js';
 
-type Summary = typeof summarizer;
+type Summary = typeof summary;
 type SummaryTableRow = Parameters<Summary['addTable']>[0][number];
+
+const PLURAL_RULES = new Intl.PluralRules('en');
+
+/** Wording of the headline sentence, keyed by plural category. */
+const HEADLINE_FORMS = {
+  one: 'message was',
+  other: 'messages were',
+};
+
+/** Wording of the commit message noun, keyed by plural category. */
+const NOUN_FORMS = {
+  one: 'message',
+  other: 'messages',
+};
+
+/** Wording of the verb that follows the conventional format, keyed by plural category. */
+const VERB_FORMS = { one: 'follows', other: 'follow' };
+
+/** Wording of the warning sentence, keyed by plural category. */
+const WARN_FORMS = {
+  one: 'message has',
+  other: 'messages have',
+};
 
 const ICON_BASE_URL =
   'https://raw.githubusercontent.com/mridang/action-commit-lint/refs/heads/master/res';
@@ -47,7 +70,6 @@ export default class DefaultFormatter implements Formatter {
    * ```
    */
   public async format(results: Results): Promise<void> {
-    const summary = summarizer;
     summary.addHeading('Commit Lint Report', 2);
     this.formatSummary(results, summary);
     this.formatTable(results, summary);
@@ -59,13 +81,13 @@ export default class DefaultFormatter implements Formatter {
    * Adds the one-paragraph overview of how many commits passed, warned or
    * failed.
    * @param results - The lint results to summarise.
-   * @param summary - The job summary to write into.
+   * @param jobSummary - The job summary to write into.
    * @example
    * ```ts
    * this.formatSummary(results, summary);
    * ```
    */
-  private formatSummary(results: Results, summary: Summary): void {
+  private formatSummary(results: Results, jobSummary: Summary): void {
     const errorCommitsCount = results.errorCommitsCount;
     const warningOnlyCommitsCount = results.items.filter(
       (item) => item.errors.length === 0 && item.warnings.length > 0,
@@ -74,12 +96,25 @@ export default class DefaultFormatter implements Formatter {
       results.checkedCount - errorCommitsCount - warningOnlyCommitsCount;
 
     const headlineNoun =
-      results.checkedCount === 1 ? 'message was' : 'messages were';
-    const cleanNoun = cleanCommitsCount === 1 ? 'message' : 'messages';
-    const cleanVerb = cleanCommitsCount === 1 ? 'follows' : 'follow';
+      HEADLINE_FORMS[
+        PLURAL_RULES.select(results.checkedCount) === 'one' ? 'one' : 'other'
+      ];
+    const cleanNoun =
+      NOUN_FORMS[
+        PLURAL_RULES.select(cleanCommitsCount) === 'one' ? 'one' : 'other'
+      ];
+    const cleanVerb =
+      VERB_FORMS[
+        PLURAL_RULES.select(cleanCommitsCount) === 'one' ? 'one' : 'other'
+      ];
     const warnNoun =
-      warningOnlyCommitsCount === 1 ? 'message has' : 'messages have';
-    const errorNoun = errorCommitsCount === 1 ? 'message' : 'messages';
+      WARN_FORMS[
+        PLURAL_RULES.select(warningOnlyCommitsCount) === 'one' ? 'one' : 'other'
+      ];
+    const errorNoun =
+      NOUN_FORMS[
+        PLURAL_RULES.select(errorCommitsCount) === 'one' ? 'one' : 'other'
+      ];
     const summaryLines = [
       `The following ${results.checkedCount} ${headlineNoun} analyzed.`,
       cleanCommitsCount > 0 &&
@@ -92,20 +127,20 @@ export default class DefaultFormatter implements Formatter {
       .filter((line): line is string => typeof line === 'string')
       .join(' ');
 
-    summary.addRaw(summaryLines).addEOL().addBreak().addBreak();
+    jobSummary.addRaw(summaryLines).addEOL().addBreak().addBreak();
   }
 
   /**
    * Adds the per-commit table with status, hash, message and first note.
    * Writes nothing when there are no results.
    * @param results - The lint results to tabulate.
-   * @param summary - The job summary to write into.
+   * @param jobSummary - The job summary to write into.
    * @example
    * ```ts
    * this.formatTable(results, summary);
    * ```
    */
-  private formatTable(results: Results, summary: Summary): void {
+  private formatTable(results: Results, jobSummary: Summary): void {
     if (results.checkedCount === 0) {
       return;
     }
@@ -131,24 +166,24 @@ export default class DefaultFormatter implements Formatter {
       return [status, sha, message, note];
     });
 
-    summary.addTable([header, ...rows]);
+    jobSummary.addTable([header, ...rows]);
   }
 
   /**
    * Adds the separator, the help link to the Conventional Commits
    * specification and a tip on fixing commits locally.
    * @param results - The lint results, used for the help URL.
-   * @param summary - The job summary to write into.
+   * @param jobSummary - The job summary to write into.
    * @example
    * ```ts
    * this.formatFooter(results, summary);
    * ```
    */
-  private formatFooter(results: Results, summary: Summary): void {
+  private formatFooter(results: Results, jobSummary: Summary): void {
     const helpUrl =
       results.helpUrl || 'https://www.conventionalcommits.org/en/v1.0.0/';
 
-    summary.addSeparator();
+    jobSummary.addSeparator();
     summary
       .addRaw('For help fixing your commit messages, see the ')
       .addLink('Conventional Commits specification', helpUrl)
@@ -157,7 +192,7 @@ export default class DefaultFormatter implements Formatter {
       )
       .addEOL()
       .addEOL();
-    summary.addQuote(
+    jobSummary.addQuote(
       `💡 Tip: Use \`git commit --amend\` or \`git rebase -i\` to fix commits locally.`,
     );
   }

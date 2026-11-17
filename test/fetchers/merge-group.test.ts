@@ -15,12 +15,12 @@ import { getOctokit } from '@actions/github';
 // eslint-disable-next-line e18e/ban-dependencies -- the tests drive the fetchers through a real Axios instance and its types, so fetch would not exercise the same transport
 import axios from 'axios';
 import { MergeGroupCommitFetcher } from '../../src/fetchers/merge-group.js';
+import { buildAxiosFetch } from './utils/nockios.js';
 import type {
   ActualMergeGroupPayload,
   MergeGroupEventPayloadSubset,
   OctokitInstance,
 } from '../../src/types.js';
-import { buildAxiosFetch } from './utils/nockios.js';
 
 beforeAll(() => {
   nock.disableNetConnect();
@@ -61,7 +61,7 @@ describe('MergeGroupCommitFetcher', () => {
           head_commit: {
             id: 'test-commit-id',
             tree_id: 'test-tree-id',
-            message: message,
+            message,
             timestamp: new Date().toISOString(),
             author: { name: 'Test Author', email: 'author@example.com' },
             committer: {

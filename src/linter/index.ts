@@ -3,16 +3,13 @@
  * message against its rules.
  */
 import { access } from 'node:fs/promises';
-import { debug as debugLog, info } from '@actions/core';
+import { debug, info } from '@actions/core';
 import lintLib from '@commitlint/lint';
 import loadConfig from '@commitlint/load';
-import type { LintOutcome } from '@commitlint/types';
-import type {
-  ActualParserOptions,
-  CommitToLint,
-  LoadedCommitlintConfig,
-} from '../types.js';
 import { Results } from './result.js';
+import type { LintOutcome } from '@commitlint/types';
+import type { ParserOptions } from 'conventional-commits-parser';
+import type { CommitToLint, LoadedCommitlintConfig } from '../types.js';
 
 /**
  * A flattened, simplified object representing the complete result of linting a
@@ -125,11 +122,10 @@ export class Linter {
       }
       info(`Loading commitlint configuration from: ${this.configPath}`);
       return loadConfig({}, { cwd: this.projectBase, file: this.configPath });
-    } else {
-      throw new Error(
-        `No configuration path was provided. A path to a valid commitlint configuration file is required.`,
-      );
     }
+    throw new Error(
+      `No configuration path was provided. A path to a valid commitlint configuration file is required.`,
+    );
   }
 
   /**
@@ -150,14 +146,14 @@ export class Linter {
     const lintResults = await Promise.all(
       this.allCommits
         .map((commit) => {
-          debugLog(`Linting commit ${commit.hash} - "${commit.message}"`);
+          debug(`Linting commit ${commit.hash} - "${commit.message}"`);
           return commit;
         })
         .map(async (commit) => {
           const lintResult = await lintLib(commit.message, loadedConfig.rules, {
             parserOpts:
               (loadedConfig.parserPreset?.parserOpts as
-                ActualParserOptions | undefined) ?? {},
+                ParserOptions | undefined) ?? {},
             plugins: loadedConfig.plugins ?? {},
             ignores: loadedConfig.ignores ?? [],
             defaultIgnores: loadedConfig.defaultIgnores ?? true,

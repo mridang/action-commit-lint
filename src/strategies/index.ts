@@ -2,13 +2,13 @@
  * @file Lint strategy contract, the strategy factory and the strategy
  * implementations re-exported for callers.
  */
-import type { context } from '@actions/github';
-
-type WebhookPayload = typeof context.payload;
-import type { CommitToLint } from '../types.js';
 import { CommitsStrategy } from './commits.js';
 import { PrTitleStrategy } from './pr-title.js';
 import { BothStrategy } from './both.js';
+import type { context } from '@actions/github';
+import type { CommitToLint } from '../types.js';
+
+type WebhookPayload = typeof context.payload;
 
 /**
  * The set of valid `lint-strategy` input values.

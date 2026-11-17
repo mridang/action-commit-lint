@@ -2,14 +2,14 @@
  * @file Commit fetcher for GitHub `pull_request` events, which lists every
  * commit of the pull request through the REST API.
  */
+import { warning } from '@actions/core';
+import { getOctokit } from '@actions/github';
 import type {
   CommitToLint,
   ICommitFetcher,
   OctokitInstance,
   PullRequestEventPayloadSubset,
 } from '../types.js';
-import { warning } from '@actions/core';
-import { getOctokit } from '@actions/github';
 
 /**
  * Implements {@link ICommitFetcher} to retrieve commits associated with a

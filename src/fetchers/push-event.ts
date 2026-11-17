@@ -2,14 +2,14 @@
  * @file Commit fetcher for GitHub `push` events, which compares the pushed
  * range through the REST API or falls back to the commits in the payload.
  */
+import { debug, error } from '@actions/core';
+import { getOctokit } from '@actions/github';
 import type {
   CommitToLint,
   ICommitFetcher,
   PushEventPayloadSubset,
   OctokitInstance,
 } from '../types.js';
-import { debug as debugLog, error as coreError } from '@actions/core';
-import { getOctokit } from '@actions/github';
 
 /**
  * Implements {@link ICommitFetcher} to retrieve commits associated with a
@@ -57,10 +57,10 @@ export class PushEventCommitFetcher implements ICommitFetcher<PushEventPayloadSu
   ): Promise<CommitToLint[]> {
     const octokit = typeof token === 'string' ? getOctokit(token) : token;
     const { before, after, commits: payloadCommits } = eventPayloadSubset;
-    debugLog(`Push event: before SHA: ${before}, after SHA: ${after}`);
+    debug(`Push event: before SHA: ${before}, after SHA: ${after}`);
 
     if (before && after && before !== after) {
-      debugLog(
+      debug(
         `Attempting to fetch commits via compare API between ${before} and ${after}.`,
       );
       try {
@@ -71,22 +71,23 @@ export class PushEventCommitFetcher implements ICommitFetcher<PushEventPayloadSu
           base: before,
           per_page: 100,
         });
-        debugLog(`API comparison found ${comparison.commits.length} commits.`);
+        debug(`API comparison found ${comparison.commits.length} commits.`);
         return comparison.commits.map((commit) => ({
           message: commit.commit.message,
           hash: commit.sha,
         }));
-      } catch (error: unknown) {
+        // eslint-disable-next-line sonarjs/variable-name -- unicorn/catch-error-name requires this name because the catch binding would otherwise shadow the imported core error
+      } catch (error_: unknown) {
         const errorMessage =
-          error instanceof Error ? error.message : String(error);
+          error_ instanceof Error ? error_.message : String(error_);
         const detailedError = `Failed to compare commits via API for ${before}...${after}: ${errorMessage}`;
-        coreError(detailedError);
-        throw new Error(detailedError);
+        error(detailedError);
+        throw new Error(detailedError, { cause: error_ });
       }
     }
 
     if (payloadCommits?.length) {
-      debugLog(
+      debug(
         `Using ${payloadCommits.length} commits from payload (API call not applicable or not attempted).`,
       );
       return payloadCommits.map((commit) => ({
@@ -95,7 +96,7 @@ export class PushEventCommitFetcher implements ICommitFetcher<PushEventPayloadSu
       }));
     }
 
-    debugLog('No commits found for push event from API or payload.');
+    debug('No commits found for push event from API or payload.');
     return [];
   }
 }

@@ -7,8 +7,8 @@ import {
   CommitsStrategy,
   PrTitleStrategy,
   getLintStrategy,
-  type LintStrategyName,
 } from '../../src/strategies/index.js';
+import type { LintStrategyName } from '../../src/strategies/index.js';
 
 describe('getLintStrategy factory', () => {
   const cases: ReadonlyArray<{

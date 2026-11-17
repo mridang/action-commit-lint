@@ -5,8 +5,8 @@
 export default {
   entry: ['src/main.ts', 'src/load.patch.ts'],
   ignoreDependencies: [
-    /^@semantic-release\//,
+    /^@semantic-release\//u,
     'semantic-release-major-tag',
-    /^@commitlint\/config-conventional$/,
+    /^@commitlint\/config-conventional$/u,
   ],
 };

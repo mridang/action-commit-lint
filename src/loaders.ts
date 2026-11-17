@@ -6,22 +6,16 @@ import { access, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { exec, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
-import {
-  startGroup,
-  endGroup,
-  info,
-  debug as debugLog,
-  error as coreError,
-} from '@actions/core';
-// eslint-disable-next-line e18e/ban-dependencies -- the action is built on cosmiconfig search and loader semantics, and lilconfig is not a drop-in replacement
-import type { Loader } from 'cosmiconfig';
+import { startGroup, endGroup, info, debug, error } from '@actions/core';
 // eslint-disable-next-line e18e/ban-dependencies -- the action is built on cosmiconfig search and loader semantics, and lilconfig is not a drop-in replacement
 import { defaultLoaders } from 'cosmiconfig';
+// eslint-disable-next-line e18e/ban-dependencies -- the action is built on cosmiconfig search and loader semantics, and lilconfig is not a drop-in replacement
+import type { Loader } from 'cosmiconfig';
 
 const execAsync = promisify(exec);
 
 /** Matches a Windows or Unix line break. */
-const LINE_BREAK = /\r?\n/;
+const LINE_BREAK = /\r?\n/u;
 
 /**
  * Major version of the commitlint engine this action bundles (see the
@@ -125,43 +119,40 @@ function declarativeLoader(loader: Loader): Loader {
     } else {
       const cwd = path.dirname(filepath);
 
-      const dependencies = ['plugins', 'extends']
+      const dependencyEntries = ['plugins', 'extends']
         .flatMap((k) => {
           // The loaded config is untyped, so each key is read dynamically.
           const v: unknown = (config as Record<string, unknown>)[k];
 
           if (typeof v === 'string') {
             return [v.trim()];
-          } else {
-            return Array.isArray(v)
-              ? v
-                  .map((x: unknown) => {
-                    const first: unknown = Array.isArray(x) ? x[0] : x;
-                    return first;
-                  })
-                  .filter((x): x is string => typeof x === 'string')
-                  .map((x) => x.trim())
-              : [];
           }
+          return Array.isArray(v)
+            ? v
+                .map((x: unknown) => {
+                  const first: unknown = Array.isArray(x) ? x[0] : x;
+                  return first;
+                })
+                .filter((x): x is string => typeof x === 'string')
+                .map((x) => x.trim())
+            : [];
         })
         .map((pkg) => {
-          debugLog(`Detected package "${pkg}"`);
+          debug(`Detected package "${pkg}"`);
           return pkg;
         })
-        .reduce<Record<string, string>>((acc, entry) => {
+        .map((entry): [string, string] => {
           const at = entry.lastIndexOf('@');
           const name =
             at > 0 && entry.startsWith('@') ? entry.slice(0, at) : entry;
-
-          if (!acc[name]) {
-            acc[name] =
-              at > 0 && entry.startsWith('@')
-                ? entry.slice(at + 1)
-                : defaultVersionFor(name);
-          }
-
-          return acc;
-        }, {});
+          return [
+            name,
+            at > 0 && entry.startsWith('@')
+              ? entry.slice(at + 1)
+              : defaultVersionFor(name),
+          ];
+        });
+      const dependencies = Object.fromEntries(dependencyEntries.toReversed());
 
       if (Object.entries(dependencies).length > 0) {
         const pkgPath = path.join(cwd, 'package.json');
@@ -199,7 +190,7 @@ function declarativeLoader(loader: Loader): Loader {
  */
 function imperativeLoader(loader: Loader, allowForce: boolean): Loader {
   return async (filepath, content) => {
-    debugLog(`Loading imperative config: ${filepath}`);
+    debug(`Loading imperative config: ${filepath}`);
     const config: unknown = await loader(filepath, content);
     const cwd = path.dirname(filepath);
 
@@ -216,12 +207,18 @@ function imperativeLoader(loader: Loader, allowForce: boolean): Loader {
         cwd,
         encoding: 'utf8',
       });
-      for (const line of stdout.split(LINE_BREAK)) debugLog(line);
-    } catch (error) {
-      if (error instanceof Error || typeof error === 'string') {
-        coreError(error);
+      // eslint-disable-next-line functional/no-loop-statements -- the loop only writes the installed packages to the debug log
+      for (const line of stdout.split(LINE_BREAK)) {
+        debug(line);
       }
-      throw new Error('Installing the configuration dependencies failed.');
+      // eslint-disable-next-line sonarjs/variable-name -- unicorn/catch-error-name requires this name because the catch binding would otherwise shadow the imported core error
+    } catch (error_) {
+      if (error_ instanceof Error || typeof error_ === 'string') {
+        error(error_);
+      }
+      throw new Error('Installing the configuration dependencies failed.', {
+        cause: error_,
+      });
     } finally {
       endGroup();
     }

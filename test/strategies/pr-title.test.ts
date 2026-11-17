@@ -44,8 +44,9 @@ describe('PrTitleStrategy', () => {
     };
     const fetchCommits = makeFetcher();
 
-    await strategy.resolve(ctx, fetchCommits);
+    const result = await strategy.resolve(ctx, fetchCommits);
 
+    expect(result).toEqual([{ hash: 'pr-1-title', message: 'fix: bug' }]);
     expect(fetchCommits).not.toHaveBeenCalled();
   });
 
