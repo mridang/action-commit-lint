@@ -9,7 +9,6 @@ import type {
   ParserPreset,
   UserPromptConfig,
 } from '@commitlint/types';
-import type { ParserOptions } from 'conventional-commits-parser';
 import type { GitHub } from '@actions/github/lib/utils';
 import type {
   PushEvent,
@@ -94,13 +93,6 @@ export interface ICommitFetcher<TEventPayloadSubset = unknown> {
     issueNumber?: number,
   ): Promise<CommitToLint[]>;
 }
-
-/**
- * The parser options accepted by the conventional commits parser. They are
- * taken from the parser itself because the commitlint typings refer to a
- * type that the installed parser version no longer exports.
- */
-export type ActualParserOptions = ParserOptions;
 
 /**
  * Defines the structure of the configuration object after being processed by

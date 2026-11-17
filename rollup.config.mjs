@@ -2,19 +2,19 @@
  * @file Rollup build configuration that bundles the action into a single
  * CommonJS file, inlining its templates and package metadata.
  */
-import resolve from '@rollup/plugin-node-resolve';
-import alias from '@rollup/plugin-alias';
-import commonjs from '@rollup/plugin-commonjs';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { builtinModules } from 'node:module';
+import resolve from '@rollup/plugin-node-resolve';
+import alias from '@rollup/plugin-alias';
+import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import typescript from '@rollup/plugin-typescript';
 
 const NODE_BUILTINS = builtinModules.flatMap((name) => [name, `node:${name}`]);
 
 /** Matches the node_modules directory in a module path. */
-const NODE_MODULES_PATTERN = /node_modules/;
+const NODE_MODULES_PATTERN = /node_modules/u;
 
 /**
  * Replaces every match of a global regex using an async replacer.
@@ -29,13 +29,13 @@ async function replaceAllAsync(code, pattern, replacer) {
   const replacements = await Promise.all(
     matches.map((found) => replacer(...found)),
   );
-  let result = '';
-  let last = 0;
-  for (const [index, found] of matches.entries()) {
-    result += code.slice(last, found.index) + replacements[index];
-    last = found.index + found[0].length;
-  }
-  return result + code.slice(last);
+  const segmentStart = (index) =>
+    index === 0 ? 0 : matches[index - 1].index + matches[index - 1][0].length;
+  const rewritten = matches.map(
+    (found, index) =>
+      code.slice(segmentStart(index), found.index) + replacements[index],
+  );
+  return rewritten.join('') + code.slice(segmentStart(matches.length));
 }
 
 const patched = path.resolve('src/load.patch.ts');
@@ -49,7 +49,7 @@ class InlineHbsPlugin {
 
   async transform(code, id) {
     const readFilePattern =
-      /readFile\s*\(\s*resolve\s*\(\s*__dirname\s*,\s*(['"`])(.+?\.hbs)\1\s*\)\s*,\s*['"`]utf-8['"`]\s*\)/g;
+      /readFile\s*\(\s*resolve\s*\(\s*__dirname\s*,\s*(['"`])(.+?\.hbs)\1\s*\)\s*,\s*['"`]utf-8['"`]\s*\)/gu;
 
     const rewrittenCode = await replaceAllAsync(
       code,
@@ -92,7 +92,7 @@ class InlinePackageJsonPlugin {
     }
 
     const requirePattern =
-      /require\((['"`])([-./\w]+?(?:package\.json|commitlint\.schema\.json))\1\)/g;
+      /require\((['"`])([-./\w]+?(?:package\.json|commitlint\.schema\.json))\1\)/gu;
 
     const rewrittenCode = await replaceAllAsync(
       code,
@@ -179,9 +179,7 @@ const createRollupConfig = (configOverrides = {}) => ({
     }),
     commonjs({
       include: NODE_MODULES_PATTERN,
-      requireReturnsDefault: () => {
-        return 'auto';
-      },
+      requireReturnsDefault: () => 'auto',
       ignore: NODE_BUILTINS,
     }),
     typescript({

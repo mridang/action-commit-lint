@@ -2,12 +2,12 @@
  * @file Tests for the Linter class and its configuration loading.
  */
 // noinspection ES6PreferShortImport
-import { describe, it, expect } from '@jest/globals';
-import { Linter } from '../../src/linter/index.js';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { describe, it, expect } from '@jest/globals';
 import { RuleConfigSeverity } from '@commitlint/types';
-import { stringify as stringifyYaml } from 'yaml';
+import { stringify } from 'yaml';
+import { Linter } from '../../src/linter/index.js';
 import { Results } from '../../src/linter/result.js';
 import { withTemporaryDir } from '../helpers/with-temporary-dir.js';
 
@@ -24,7 +24,7 @@ describe('Linter', () => {
 
   const createCommitlintrcJson = async (
     dir: string,
-    configContent: object,
+    configContent: Record<string, unknown>,
     filename: string,
   ) => {
     const filePath = path.join(dir, filename);
@@ -34,11 +34,11 @@ describe('Linter', () => {
 
   const createCommitlintrcYaml = async (
     dir: string,
-    configContent: object,
+    configContent: Record<string, unknown>,
     filename = '.commitlintrc.yaml',
   ) => {
     const filePath = path.join(dir, filename);
-    await writeFile(filePath, stringifyYaml(configContent));
+    await writeFile(filePath, stringify(configContent));
     return filePath;
   };
 

@@ -4,8 +4,8 @@
 import { MergeGroupCommitFetcher } from './merge-group.js';
 import { PullRequestCommitFetcher } from './pull-request.js';
 import { PushEventCommitFetcher } from './push-event.js';
-import type { ICommitFetcher } from '../types.js';
 import { GenericCommitFetcher } from './default-git.js';
+import type { ICommitFetcher } from '../types.js';
 
 /**
  * Selects and returns the appropriate commit fetcher based on the event name.

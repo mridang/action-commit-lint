@@ -1,7 +1,9 @@
 /**
  * @file Helpers that mock GitHub API calls with nock for the fetcher tests.
  */
-// eslint-disable-next-line e18e/ban-dependencies -- the tests drive the fetchers through a real Axios instance and its types, so fetch would not exercise the same transport
+
+import { Response } from 'undici';
+// eslint-disable-next-line e18e/ban-dependencies -- type-only import: the helper adapts axios request configs to nock and never calls axios at runtime
 import type {
   AxiosHeaders,
   AxiosHeaderValue,
@@ -19,7 +21,6 @@ import type {
   HeadersInit,
   ResponseInit,
 } from 'undici';
-import { Response } from 'undici';
 
 /**
  * Represents Headers-like objects that can be processed.
@@ -83,13 +84,14 @@ function createFetchHeaders(
     ([name, value]): [string, string][] => {
       if (isNil(value)) {
         return [];
-      } else if (typeof value === 'string') {
-        return [[name, value]];
-      } else if (Array.isArray(value)) {
-        return value.filter((v) => !isNil(v)).map((v) => [name, v]);
-      } else {
-        return [[name, String(value)]];
       }
+      if (typeof value === 'string') {
+        return [[name, value]];
+      }
+      if (Array.isArray(value)) {
+        return value.filter((v) => !isNil(v)).map((v) => [name, v]);
+      }
+      return [[name, String(value)]];
     },
   );
 }
@@ -103,9 +105,8 @@ function createFetchHeaders(
  * isNil(undefined); // true
  * ```
  */
-const isNil = (value: unknown): value is null | undefined => {
-  return value === null || value === undefined;
-};
+const isNil = (value: unknown): value is null | undefined =>
+  value === null || value === undefined;
 
 /**
  * Checks if the provided headers object is an instance of the global
@@ -117,9 +118,8 @@ const isNil = (value: unknown): value is null | undefined => {
  * isGlobalHeaders(new Headers({ a: 'b' })); // true
  * ```
  */
-const isGlobalHeaders = (headers: HeadersLike): headers is Headers => {
-  return typeof Headers !== 'undefined' && headers instanceof Headers;
-};
+const isGlobalHeaders = (headers: HeadersLike): headers is Headers =>
+  typeof Headers !== 'undefined' && headers instanceof Headers;
 
 /**
  * Creates an Axios-compatible headers object (Record<string, string>)
@@ -140,46 +140,44 @@ function createAxiosHeaders(
 ): Record<string, string> {
   if (isGlobalHeaders(headersInput)) {
     return Object.fromEntries(headersInput.entries());
-  } else if (Array.isArray(headersInput)) {
+  }
+  if (Array.isArray(headersInput)) {
     return Object.fromEntries(
       (headersInput as [unknown, unknown][]).filter(
         (pair): pair is [string, string] =>
           typeof pair[0] === 'string' && typeof pair[1] === 'string',
       ),
     );
-  } else {
-    let processableRecord: Record<
-      string,
-      AxiosHeaderValue | string | number | undefined | null
-    >;
-
-    processableRecord =
-      typeof (headersInput as AxiosHeaders).toJSON === 'function'
-        ? (headersInput as AxiosHeaders).toJSON()
-        : (headersInput as Record<
-            string,
-            AxiosHeaderValue | string | number | undefined | null
-          >);
-
-    return Object.entries(processableRecord).reduce<Record<string, string>>(
-      (acc, [name, value]) => {
-        if (!isNil(value)) {
-          if (typeof value === 'string') {
-            acc[name] = value;
-          } else if (Array.isArray(value)) {
-            acc[name] = value
-              .filter((v) => !isNil(v))
-              .map(String)
-              .join(', ');
-          } else {
-            acc[name] = String(value);
-          }
-        }
-        return acc;
-      },
-      {},
-    );
   }
+  const processableRecord: Record<
+    string,
+    AxiosHeaderValue | string | number | undefined | null
+  > =
+    typeof (headersInput as AxiosHeaders).toJSON === 'function'
+      ? (headersInput as AxiosHeaders).toJSON()
+      : (headersInput as Record<
+          string,
+          AxiosHeaderValue | string | number | undefined | null
+        >);
+
+  return Object.entries(processableRecord).reduce<Record<string, string>>(
+    (acc, [name, value]) => {
+      if (!isNil(value)) {
+        if (typeof value === 'string') {
+          acc[name] = value;
+        } else if (Array.isArray(value)) {
+          acc[name] = value
+            .filter((v) => !isNil(v))
+            .map(String)
+            .join(', ');
+        } else {
+          acc[name] = String(value);
+        }
+      }
+      return acc;
+    },
+    {},
+  );
 }
 
 /**

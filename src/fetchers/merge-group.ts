@@ -2,13 +2,13 @@
  * @file Commit fetcher for GitHub `merge_group` events, which lints the head
  * commit of the merge queue entry.
  */
+import { warning, debug } from '@actions/core';
 import type {
   CommitToLint,
   ICommitFetcher,
   MergeGroupEventPayloadSubset,
   OctokitInstance,
 } from '../types.js';
-import { warning, debug as debugLog } from '@actions/core';
 
 /**
  * Implements {@link ICommitFetcher} to retrieve the head commit from a GitHub
@@ -41,12 +41,12 @@ export class MergeGroupCommitFetcher implements ICommitFetcher<MergeGroupEventPa
     eventPayloadSubset: MergeGroupEventPayloadSubset,
   ): Promise<CommitToLint[]> {
     const mergeGroup = eventPayloadSubset.merge_group;
-    debugLog(
+    debug(
       `Merge group event payload subset merge_group object: ${JSON.stringify(mergeGroup)}`,
     );
 
     if (mergeGroup?.head_commit?.message && mergeGroup?.head_sha) {
-      debugLog(`Found head commit for merge group: SHA ${mergeGroup.head_sha}`);
+      debug(`Found head commit for merge group: SHA ${mergeGroup.head_sha}`);
       return [
         {
           message: mergeGroup.head_commit.message,

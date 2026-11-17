@@ -4,7 +4,7 @@
  */
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { debug as debugLog, error as coreError } from '@actions/core';
+import { debug, error } from '@actions/core';
 import type { ICommitFetcher } from '../types.js';
 
 const execAsync = promisify(exec);
@@ -44,9 +44,7 @@ export class GenericCommitFetcher implements ICommitFetcher<string> {
    */
   public async fetchCommits(): Promise<CommitToLint[]> {
     const command = `git log --pretty=format:"%H%x1E%s"`;
-    debugLog(
-      `Attempting to fetch commits via git log with command: "${command}"`,
-    );
+    debug(`Attempting to fetch commits via git log with command: "${command}"`);
 
     try {
       const { stdout } = await execAsync(command, {
@@ -54,7 +52,7 @@ export class GenericCommitFetcher implements ICommitFetcher<string> {
       });
 
       if (!stdout) {
-        debugLog('git log returned no output. No commits found.');
+        debug('git log returned no output. No commits found.');
         return [];
       }
 
@@ -70,14 +68,15 @@ export class GenericCommitFetcher implements ICommitFetcher<string> {
         })
         .filter((commit) => commit.hash && commit.message);
 
-      debugLog(`Found ${commits.length} commits via git log.`);
+      debug(`Found ${commits.length} commits via git log.`);
       return commits;
-    } catch (error: unknown) {
+      // eslint-disable-next-line sonarjs/variable-name -- unicorn/catch-error-name requires this name because the catch binding would otherwise shadow the imported core error
+    } catch (error_: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        error_ instanceof Error ? error_.message : String(error_);
       const detailedError = `Failed to list commits using 'git log': ${errorMessage}`;
-      coreError(detailedError);
-      throw new Error(detailedError);
+      error(detailedError);
+      throw new Error(detailedError, { cause: error_ });
     }
   }
 }
