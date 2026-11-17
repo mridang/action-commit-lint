@@ -17,6 +17,19 @@ interface GeneratedManifest {
   packages?: Record<string, unknown>;
 }
 
+/**
+ * Reads a generated package.json or package-lock.json.
+ * @param file - The path of the JSON file.
+ * @returns The parsed manifest.
+ */
+async function readManifest(file: string): Promise<GeneratedManifest> {
+  const parsed: unknown = JSON.parse(await readFile(file, 'utf8'));
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new TypeError(`${file} does not contain a JSON object`);
+  }
+  return parsed;
+}
+
 const baseConfig = {
   branches: ['main'],
   plugins: [
@@ -73,18 +86,14 @@ it.each([
       await expect(access(pkgJsonPath)).resolves.toBeUndefined();
       await expect(access(pkgLockPath)).resolves.toBeUndefined();
 
-      const pkgJson = JSON.parse(
-        await readFile(pkgJsonPath, 'utf8'),
-      ) as GeneratedManifest;
-      const deps = pkgJson.dependencies || pkgJson.devDependencies;
+      const pkgJson = await readManifest(pkgJsonPath);
+      const deps = pkgJson.dependencies ?? pkgJson.devDependencies;
       expect(deps).toMatchObject({
         '@semantic-release/commit-analyzer': '*',
         '@mridang/semantic-release-peer-version': '*',
       });
 
-      const pkgLock = JSON.parse(
-        await readFile(pkgLockPath, 'utf8'),
-      ) as GeneratedManifest;
+      const pkgLock = await readManifest(pkgLockPath);
       expect(pkgLock.packages).toHaveProperty(
         'node_modules/@semantic-release/commit-analyzer',
       );
@@ -110,11 +119,9 @@ it('pins an unversioned @commitlint/* config to the bundled engine major', async
     const result = await explorer.search(tmp);
     expect(result?.filepath).toBe(filepath);
 
-    const pkgJson = JSON.parse(
-      await readFile(path.join(tmp, 'package.json'), 'utf8'),
-    ) as GeneratedManifest;
-    const deps = pkgJson.dependencies || pkgJson.devDependencies;
+    const pkgJson = await readManifest(path.join(tmp, 'package.json'));
+    const deps = pkgJson.dependencies ?? pkgJson.devDependencies;
     // Must NOT be '*' (which resolves to config-conventional@20, ESM-only and
     // incompatible with the bundled v19 engine — breaks `feat!:` parsing, #37).
-    expect(deps['@commitlint/config-conventional']).toBe('^19');
+    expect(deps?.['@commitlint/config-conventional']).toBe('^19');
   })());

@@ -37,7 +37,26 @@ const COMMIT_MESSAGE_FORMS = {
   other: 'commit messages',
 };
 
-const Context = context.constructor as new () => typeof context;
+/**
+ * Tells whether a value is an instance of the GitHub context class.
+ * @param value - The value to check.
+ * @returns True when the value was built by the context class.
+ */
+function isContext(value: unknown): value is typeof context {
+  return value instanceof context.constructor;
+}
+
+/**
+ * Builds a fresh GitHub context, which re-reads the workflow environment.
+ * @returns A new context.
+ */
+function createContext(): typeof context {
+  const created: unknown = Reflect.construct(context.constructor, []);
+  if (!isContext(created)) {
+    throw new TypeError('Could not create the GitHub context.');
+  }
+  return created;
+}
 
 /**
  * Retrieves the 'commit-depth' input.
@@ -50,7 +69,7 @@ const Context = context.constructor as new () => typeof context;
  */
 function getCommitDepth(): number | null {
   const commitDepthString = getInput('commit-depth');
-  if (!commitDepthString?.trim()) {
+  if (!commitDepthString.trim()) {
     return null;
   }
   const depth = Number.parseInt(commitDepthString, 10);
@@ -369,7 +388,7 @@ function assertUsableConfig(
  * ```
  */
 export async function run(
-  ghCtx = new Context(),
+  ghCtx = createContext(),
   commitFetcherFactory: (event: string) => ICommitFetcher | null = (
     event: string,
   ) => getCommitFetcher(event),
@@ -449,11 +468,12 @@ export async function run(
       helpUrl,
       workingDirectory,
     );
-  } catch (error) {
-    if (error instanceof Error) {
-      setFailed(error);
+    // eslint-disable-next-line sonarjs/variable-name -- unicorn/catch-error-name requires this name where `error` is already in scope
+  } catch (error_) {
+    if (error_ instanceof Error) {
+      setFailed(error_);
     } else {
-      setFailed(String(error));
+      setFailed(String(error_));
     }
   }
 }

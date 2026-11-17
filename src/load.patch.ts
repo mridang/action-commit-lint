@@ -23,6 +23,23 @@ const rootDir = new URL('.', import.meta.url).pathname;
 const WHITESPACE_PATTERN = /\s/u;
 
 /**
+ * Checks whether an imported package.json carries a string version.
+ * @param value - The imported module.
+ * @returns True when the module has a string `version`.
+ * @example
+ * ```ts
+ * hasStringVersion({ version: '1.0.0' }); // true
+ * ```
+ */
+function hasStringVersion(value: unknown): value is { version: string } {
+  return (
+    value instanceof Object &&
+    'version' in value &&
+    typeof value.version === 'string'
+  );
+}
+
+/**
  * Loads a commitlint plugin by name and registers it in the given plugin
  * record, resolving the package from the working directory.
  * @param plugins - The record of already loaded plugins, updated in place.
@@ -63,22 +80,21 @@ export default async function loadPlugin(
     })();
 
     // eslint-disable-next-line no-unsanitized/method -- the plugin path is resolved from the installed package, not user input
-    const loadedModule = (await import(pathToFileURL(entry).href)) as Record<
-      string,
-      unknown
-    >;
+    const loadedModule: unknown = await import(pathToFileURL(entry).href);
     const plugin =
-      'default' in loadedModule ? loadedModule.default : loadedModule;
+      typeof loadedModule === 'object' &&
+      loadedModule !== null &&
+      'default' in loadedModule
+        ? loadedModule.default
+        : loadedModule;
 
     if (debug) {
       const version = await (async (): Promise<string> => {
         try {
           const pkgJson = resolveFrom(cwd, `${longName}/package.json`);
           // eslint-disable-next-line no-unsanitized/method -- the package.json path is resolved from the installed package, not user input
-          const pkgModule = (await import(pathToFileURL(pkgJson).href)) as {
-            version?: string;
-          };
-          return pkgModule.version ?? 'unknown';
+          const pkgModule: unknown = await import(pathToFileURL(pkgJson).href);
+          return hasStringVersion(pkgModule) ? pkgModule.version : 'unknown';
         } catch {
           // The version is informational only, so keep the default when the
           // package.json cannot be imported.

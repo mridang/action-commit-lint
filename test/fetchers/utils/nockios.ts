@@ -5,13 +5,11 @@
 import { Response } from 'undici';
 // eslint-disable-next-line e18e/ban-dependencies -- type-only import: the helper adapts axios request configs to nock and never calls axios at runtime
 import type {
-  AxiosHeaders,
   AxiosHeaderValue,
   AxiosInstance,
   AxiosRequestConfig,
   AxiosResponse,
   AxiosResponseHeaders,
-  HeadersDefaults,
   RawAxiosResponseHeaders,
 } from 'axios';
 
@@ -29,8 +27,7 @@ import type {
 type HeadersLike =
   | string[][]
   | Record<string, string | undefined | number | AxiosHeaderValue>
-  | Headers
-  | HeadersDefaults;
+  | Headers;
 
 /**
  * Represents URL-like objects or strings.
@@ -75,10 +72,9 @@ function createFetchHeaders(
     return [];
   }
 
-  const normalizedHeaders: Record<string, AxiosHeaderValue> =
-    typeof (axiosHeadersInput as AxiosHeaders).toJSON === 'function'
-      ? (axiosHeadersInput as AxiosHeaders).toJSON()
-      : (axiosHeadersInput as Record<string, AxiosHeaderValue>);
+  const normalizedHeaders = hasToJson(axiosHeadersInput)
+    ? axiosHeadersInput.toJSON()
+    : axiosHeadersInput;
 
   return Object.entries(normalizedHeaders).flatMap(
     ([name, value]): [string, string][] => {
@@ -107,6 +103,58 @@ function createFetchHeaders(
  */
 const isNil = (value: unknown): value is null | undefined =>
   value === null || value === undefined;
+
+/**
+ * Checks whether a headers object serialises itself through `toJSON`, as
+ * `AxiosHeaders` does.
+ * @param value - The headers object to check.
+ * @returns True when the object has a `toJSON` method.
+ * @example
+ * ```ts
+ * hasToJson({ toJSON: () => ({}) }); // true
+ * ```
+ */
+const hasToJson = <
+  T extends HeadersLike | RawAxiosResponseHeaders | AxiosResponseHeaders,
+>(
+  value: T,
+): value is T & {
+  toJSON: () => Record<
+    string,
+    AxiosHeaderValue | string | number | undefined | null
+  >;
+} =>
+  value instanceof Object &&
+  'toJSON' in value &&
+  typeof value.toJSON === 'function';
+
+/**
+ * Checks whether a thrown value is an Axios error.
+ * @param error - The thrown value.
+ * @returns True when the value is an error flagged as an Axios error.
+ * @example
+ * ```ts
+ * isAxiosError(new Error('x')); // false
+ * ```
+ */
+const isAxiosError = (error: unknown): error is Error =>
+  error instanceof Error &&
+  'isAxiosError' in error &&
+  Boolean(error.isAxiosError);
+
+/**
+ * Checks whether an Axios error carries a response.
+ * @param error - The Axios error.
+ * @returns True when the error has a response.
+ * @example
+ * ```ts
+ * hasResponse(new Error('x')); // false
+ * ```
+ */
+const hasResponse = (
+  error: Error,
+): error is Error & { response: AxiosResponse<ArrayBuffer> } =>
+  'response' in error && Boolean(error.response);
 
 /**
  * Checks if the provided headers object is an instance of the global
@@ -143,7 +191,7 @@ function createAxiosHeaders(
   }
   if (Array.isArray(headersInput)) {
     return Object.fromEntries(
-      (headersInput as [unknown, unknown][]).filter(
+      headersInput.filter(
         (pair): pair is [string, string] =>
           typeof pair[0] === 'string' && typeof pair[1] === 'string',
       ),
@@ -152,13 +200,7 @@ function createAxiosHeaders(
   const processableRecord: Record<
     string,
     AxiosHeaderValue | string | number | undefined | null
-  > =
-    typeof (headersInput as AxiosHeaders).toJSON === 'function'
-      ? (headersInput as AxiosHeaders).toJSON()
-      : (headersInput as Record<
-          string,
-          AxiosHeaderValue | string | number | undefined | null
-        >);
+  > = hasToJson(headersInput) ? headersInput.toJSON() : headersInput;
 
   return Object.entries(processableRecord).reduce<Record<string, string>>(
     (acc, [name, value]) => {
@@ -249,12 +291,8 @@ const axiosFetchAdapter =
     try {
       result = await axiosInstance.request<ArrayBuffer>(config);
     } catch (error: unknown) {
-      const axiosError = error as {
-        response?: AxiosResponse<ArrayBuffer>;
-        isAxiosError?: boolean;
-      };
-      if (axiosError.isAxiosError && axiosError.response) {
-        result = axiosError.response;
+      if (isAxiosError(error) && hasResponse(error)) {
+        result = error.response;
       } else {
         throw error;
       }

@@ -45,17 +45,17 @@ export type ActualMergeGroupPayload = MergeGroupEvent['merge_group'];
  * Defines the subset of the PushEvent payload relevant to the
  * PushEventCommitFetcher.
  */
-export type PushEventPayloadSubset = Pick<
-  PushEvent,
-  'before' | 'after' | 'commits'
->;
+export type PushEventPayloadSubset = Pick<PushEvent, 'before' | 'after'> &
+  Partial<Pick<PushEvent, 'commits'>>;
 
 /**
  * Defines the subset of the MergeGroupEvent payload relevant to the
  * MergeGroupCommitFetcher.
  */
 export type MergeGroupEventPayloadSubset = {
-  merge_group?: Pick<ActualMergeGroupPayload, 'head_sha' | 'head_commit'>;
+  merge_group?: Partial<
+    Pick<ActualMergeGroupPayload, 'head_sha' | 'head_commit'>
+  >;
 };
 
 /**

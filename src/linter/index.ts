@@ -142,6 +142,11 @@ export class Linter {
    */
   public async lint(): Promise<Results> {
     const loadedConfig = await this.loadEffectiveConfig();
+    const presetParserOptions = loadedConfig.parserPreset?.parserOpts;
+    const parserOptions: ParserOptions =
+      typeof presetParserOptions === 'object' && presetParserOptions !== null
+        ? presetParserOptions
+        : {};
 
     const lintResults = await Promise.all(
       this.allCommits
@@ -151,10 +156,8 @@ export class Linter {
         })
         .map(async (commit) => {
           const lintResult = await lintLib(commit.message, loadedConfig.rules, {
-            parserOpts:
-              (loadedConfig.parserPreset?.parserOpts as
-                ParserOptions | undefined) ?? {},
-            plugins: loadedConfig.plugins ?? {},
+            parserOpts: parserOptions,
+            plugins: loadedConfig.plugins,
             ignores: loadedConfig.ignores ?? [],
             defaultIgnores: loadedConfig.defaultIgnores ?? true,
             helpUrl: this.helpUrl || loadedConfig.helpUrl,
