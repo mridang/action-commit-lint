@@ -30,7 +30,8 @@ describe('getLintStrategy factory', () => {
 
   test('throws on an unrecognised strategy name (defensive default branch)', () => {
     expect(() =>
-      getLintStrategy('totally-bogus' as unknown as LintStrategyName),
+      // @ts-expect-error -- deliberately passes a name outside LintStrategyName to reach the defensive default branch
+      getLintStrategy('totally-bogus'),
     ).toThrow('Unknown lint strategy: totally-bogus');
   });
 });

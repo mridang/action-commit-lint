@@ -54,10 +54,6 @@ describe('getCommitFetcher', () => {
   test.each(testCases)('$description', ({ eventName, expectedClass }) => {
     const fetcher = getCommitFetcher(eventName);
 
-    if (expectedClass) {
-      expect(fetcher).toBeInstanceOf(expectedClass);
-    } else {
-      expect(fetcher).toBeNull();
-    }
+    expect(fetcher).toBeInstanceOf(expectedClass);
   });
 });

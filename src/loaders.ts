@@ -119,10 +119,11 @@ function declarativeLoader(loader: Loader): Loader {
     } else {
       const cwd = path.dirname(filepath);
 
+      const configEntries = new Map(Object.entries(config));
       const dependencyEntries = ['plugins', 'extends']
         .flatMap((k) => {
           // The loaded config is untyped, so each key is read dynamically.
-          const v: unknown = (config as Record<string, unknown>)[k];
+          const v: unknown = configEntries.get(k);
 
           if (typeof v === 'string') {
             return [v.trim()];

@@ -60,10 +60,10 @@ export class GenericCommitFetcher implements ICommitFetcher<string> {
         .trim()
         .split('\n')
         .map((line) => {
-          const [hash, message] = line.split('\u001E');
+          const [hash = '', message = ''] = line.split('\u001E');
           return {
-            message: message?.trim() || '',
-            hash: hash?.trim() || 'unknown_sha',
+            message: message.trim(),
+            hash: hash.trim() || 'unknown_sha',
           };
         })
         .filter((commit) => commit.hash && commit.message);

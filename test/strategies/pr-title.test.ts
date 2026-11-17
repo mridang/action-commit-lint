@@ -61,10 +61,10 @@ describe('PrTitleStrategy', () => {
   });
 
   test('returns an empty list when payload.pull_request is literally null', async () => {
-    const ctx = {
+    const ctx: StrategyContext = {
       eventName: 'pull_request',
-      payload: { pull_request: null },
-    } as unknown as StrategyContext;
+      payload: Object.fromEntries([['pull_request', null]]),
+    };
     const fetchCommits = makeFetcher();
 
     const result = await strategy.resolve(ctx, fetchCommits);

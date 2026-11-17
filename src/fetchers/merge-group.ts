@@ -45,7 +45,7 @@ export class MergeGroupCommitFetcher implements ICommitFetcher<MergeGroupEventPa
       `Merge group event payload subset merge_group object: ${JSON.stringify(mergeGroup)}`,
     );
 
-    if (mergeGroup?.head_commit?.message && mergeGroup?.head_sha) {
+    if (mergeGroup?.head_commit?.message && mergeGroup.head_sha) {
       debug(`Found head commit for merge group: SHA ${mergeGroup.head_sha}`);
       return [
         {
