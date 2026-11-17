@@ -468,11 +468,12 @@ export async function run(
       helpUrl,
       workingDirectory,
     );
-  } catch (caught) {
-    if (caught instanceof Error) {
-      setFailed(caught);
+    // eslint-disable-next-line sonarjs/variable-name -- unicorn/catch-error-name requires this name where `error` is already in scope
+  } catch (error_) {
+    if (error_ instanceof Error) {
+      setFailed(error_);
     } else {
-      setFailed(String(caught));
+      setFailed(String(error_));
     }
   }
 }
